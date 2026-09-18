@@ -1,0 +1,17 @@
+{
+  "name": "Sikkerhetskontroll, selvbetjente hytter",
+  "short_name": "Sikkerhetskontroll",
+  "description": "Årlig sikkerhetskontroll på DNT Oslo og Omegns selvbetjente hytter. Virker uten dekning.",
+  "lang": "nb",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF7E9",
+  "theme_color": "#FFF7E9",
+  "icons": [
+    { "src": "ikon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

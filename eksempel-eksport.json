@@ -1,0 +1,226 @@
+{
+ "skjemaType": "dnt-internkontroll",
+ "skjemaVersjon": 1,
+ "appversjon": "2026-09-18-2",
+ "grunndataVersjon": 7,
+ "id": "ik-mu6oj8nf-k9lia",
+ "opprettet": "2026-09-18T08:11:25",
+ "sistEndret": "2026-09-18T08:11:25",
+ "hytteId": "torfinnsbu",
+ "hytteNavn": "Torfinnsbu",
+ "omraade": "Jotunheimen",
+ "dato": "2026-08-14",
+ "utfortAv": "Kari Tilsyn",
+ "varslertype": "10ar",
+ "omfang": "anlegg",
+ "bygg": [
+  {
+   "byggId": "torfinnsbu-badstua",
+   "navn": "Badstua"
+  },
+  {
+   "byggId": "torfinnsbu-hovedhytte",
+   "navn": "Gamlestøga"
+  },
+  {
+   "byggId": "torfinnsbu-hundebua",
+   "navn": "Hundebua"
+  },
+  {
+   "byggId": "torfinnsbu-nye-langhuset",
+   "navn": "Nye Langhuset"
+  },
+  {
+   "byggId": "torfinnsbu-sorstugo",
+   "navn": "Sørstugo"
+  }
+ ],
+ "svar": {
+  "so0": "ja",
+  "rv1": "nei",
+  "rv2": "ja",
+  "bs1": "ja",
+  "bs2": "ja",
+  "bs3": "ja",
+  "il1": "ja",
+  "il2": "ja",
+  "il3": "ja",
+  "il4": "ja",
+  "ga1": "ja",
+  "ga2": "ja",
+  "ga3": "ja",
+  "gl1": "ja",
+  "gl2": "ja",
+  "rm1": "ja",
+  "rm2": "ja",
+  "an1": "ja",
+  "an2": "ja",
+  "an3": "ja",
+  "so1": "ja",
+  "so2": "ja",
+  "so3": "ja",
+  "so4": "ja"
+ },
+ "avvik": [
+  {
+   "bolk": "Røykvarslere",
+   "punkt": "Det er røykvarslere i alle soverom og rom med ildsted",
+   "kilde": "punkt",
+   "tekst": "Mangler varsler i nordre soverom i Gamlestøga."
+  },
+  {
+   "bolk": "Brannslukningsapparater",
+   "punkt": null,
+   "kilde": "fritekst",
+   "tekst": "Slukkeren i Hundebua står bak veden, bør flyttes."
+  }
+ ],
+ "notater": [
+  {
+   "bolk": "Gassblussapparat",
+   "punkt": "Det er skiftet deler på apparatet siste 12 måneder",
+   "tekst": "Ny slange og regulator på gassblusset."
+  }
+ ],
+ "utstyr": [
+  {
+   "utstyrId": "torfinnsbu-badstua-brannslukker",
+   "byggId": "torfinnsbu-badstua",
+   "type": "brannslukker",
+   "levetidAar": 5,
+   "tidligereAar": 2024,
+   "montertAar": 2024,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-badstua-brannvarsler",
+   "byggId": "torfinnsbu-badstua",
+   "type": "brannvarsler",
+   "levetidAar": 2,
+   "tidligereAar": 2026,
+   "montertAar": 2026,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-hovedhytte-brannslukker",
+   "byggId": "torfinnsbu-hovedhytte",
+   "type": "brannslukker",
+   "levetidAar": 5,
+   "tidligereAar": 2021,
+   "montertAar": 2026,
+   "endret": true
+  },
+  {
+   "utstyrId": "torfinnsbu-hovedhytte-brannvarsler",
+   "byggId": "torfinnsbu-hovedhytte",
+   "type": "brannvarsler",
+   "levetidAar": 2,
+   "tidligereAar": 2026,
+   "montertAar": 2026,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-hovedhytte-regulatorsett",
+   "byggId": "torfinnsbu-hovedhytte",
+   "type": "regulatorsett",
+   "levetidAar": 5,
+   "tidligereAar": 2023,
+   "montertAar": 2023,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-hundebua-brannslukker",
+   "byggId": "torfinnsbu-hundebua",
+   "type": "brannslukker",
+   "levetidAar": 5,
+   "tidligereAar": 2026,
+   "montertAar": 2026,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-hundebua-regulatorsett",
+   "byggId": "torfinnsbu-hundebua",
+   "type": "regulatorsett",
+   "levetidAar": 5,
+   "tidligereAar": 2026,
+   "montertAar": 2026,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-hundebua-brannvarsler",
+   "byggId": "torfinnsbu-hundebua",
+   "type": "brannvarsler",
+   "levetidAar": 2,
+   "tidligereAar": 2026,
+   "montertAar": 2026,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-nye-langhuset-brannslukker",
+   "byggId": "torfinnsbu-nye-langhuset",
+   "type": "brannslukker",
+   "levetidAar": 5,
+   "tidligereAar": 2026,
+   "montertAar": 2026,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-nye-langhuset-brannvarsler",
+   "byggId": "torfinnsbu-nye-langhuset",
+   "type": "brannvarsler",
+   "levetidAar": 2,
+   "tidligereAar": 2026,
+   "montertAar": 2026,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-nye-langhuset-regulatorsett",
+   "byggId": "torfinnsbu-nye-langhuset",
+   "type": "regulatorsett",
+   "levetidAar": 5,
+   "tidligereAar": 2026,
+   "montertAar": 2026,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-sorstugo-brannslukker",
+   "byggId": "torfinnsbu-sorstugo",
+   "type": "brannslukker",
+   "levetidAar": 5,
+   "tidligereAar": null,
+   "montertAar": null,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-sorstugo-brannvarsler",
+   "byggId": "torfinnsbu-sorstugo",
+   "type": "brannvarsler",
+   "levetidAar": 2,
+   "tidligereAar": 2026,
+   "montertAar": 2026,
+   "endret": false
+  },
+  {
+   "utstyrId": "torfinnsbu-sorstugo-regulatorsett",
+   "byggId": "torfinnsbu-sorstugo",
+   "type": "regulatorsett",
+   "levetidAar": 5,
+   "tidligereAar": 2023,
+   "montertAar": 2023,
+   "endret": false
+  }
+ ],
+ "feiing": {
+  "utfort": true,
+  "dato": "2026-08-13"
+ },
+ "vedlikehold": [
+  {
+   "tittel": "Råte i trappa opp til loftet",
+   "notat": "To trinn er myke. Bør skiftes før sesongen.",
+   "byggId": null
+  }
+ ],
+ "kommentar": "Vannposten fungerer fint etter reparasjonen i fjor.",
+ "eksportert": "2026-09-18T08:11:25"
+}

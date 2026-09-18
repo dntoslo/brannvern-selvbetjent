@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sikkerhetskontroll, selvbetjente hytter</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FFF7E9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sikkerhetskontroll">
+<link rel="apple-touch-icon" href="ikon-192.png">
+<style>
+:root{
+  --beige:#FFF7E9; --beige2:#F8E6C6; --hvit:#fff; --blaa:#C5DCEA;
+  --gronn:#597E61; --gronn-lys:#E9F2D9; --roed:#D82D20; --roed-lys:#FFC8C3;
+  --blekk:#1B1A17; --damp:#6B675E; --kant:#E2D6BE;
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--beige); color:var(--blekk);
+  font:400 17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  padding-bottom:env(safe-area-inset-bottom);
+  -webkit-text-size-adjust:100%;
+}
+.ramme{max-width:560px;margin:0 auto;padding:0 14px 120px}
+h1{font-size:23px;line-height:1.25;margin:0 0 4px;font-weight:600}
+h2{font-size:19px;line-height:1.3;margin:0;font-weight:600}
+h3{font-size:16px;margin:0 0 8px;font-weight:600}
+p{margin:0 0 12px}
+.damp{color:var(--damp);font-size:15px}
+.liten{font-size:14px;color:var(--damp)}
+
+/* topp */
+header{
+  position:sticky;top:0;z-index:20;background:var(--beige);
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+  border-bottom:1px solid var(--kant);
+}
+header .rad{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:12px}
+header .tit{flex:1;min-width:0}
+header .tit b{display:block;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .tit span{display:block;font-size:13px;color:var(--damp)}
+.tilbake{
+  border:0;background:none;padding:8px 6px 8px 0;font-size:17px;color:var(--blekk);
+  cursor:pointer;display:flex;align-items:center;gap:4px
+}
+.stolpe{height:4px;background:var(--kant);border-radius:2px;overflow:hidden;margin-top:10px;max-width:560px;margin-left:auto;margin-right:auto}
+.stolpe i{display:block;height:100%;background:var(--gronn);width:0;transition:width .2s}
+
+/* kort */
+.kort{background:var(--hvit);border:1px solid var(--kant);border-radius:var(--r);padding:16px;margin:12px 0}
+.kort.tett{padding:0;overflow:hidden}
+.bolk{border-bottom:1px solid var(--kant)}
+.bolk:last-child{border-bottom:0}
+.bolkhode{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  background:none;border:0;padding:16px;font:inherit;color:inherit;cursor:pointer
+}
+.bolkhode .num{
+  flex:0 0 28px;height:28px;border-radius:50%;background:var(--beige2);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600
+}
+.bolkhode .num.ferdig{background:var(--gronn);color:#fff}
+.bolkhode .num.avvik{background:var(--roed);color:#fff}
+.bolkhode .t{flex:1;min-width:0}
+.bolkhode .t b{display:block;font-weight:600;font-size:17px}
+.bolkhode .t span{font-size:14px;color:var(--damp)}
+.bolkhode .pil{color:var(--damp);font-size:14px}
+.bolkinnhold{padding:0 16px 16px}
+.bolkinnhold.skjult{display:none}
+
+.info{background:var(--beige2);border-radius:10px;padding:12px 14px;margin:0 0 16px;font-size:15px}
+.info ul{margin:0;padding-left:18px}
+.info li{margin:4px 0}
+
+/* sporsmal */
+.punkt{padding:14px 0;border-top:1px solid var(--kant)}
+.punkt:first-of-type{border-top:0;padding-top:4px}
+.punkt .sp{margin:0 0 10px}
+.valg{display:flex;gap:8px}
+.valg button{
+  flex:1;min-height:50px;border:1.5px solid var(--kant);background:var(--hvit);
+  border-radius:10px;font:inherit;font-size:16px;cursor:pointer;color:var(--blekk)
+}
+.valg button.paa{background:var(--blekk);border-color:var(--blekk);color:#fff;font-weight:600}
+.valg.smal button{font-size:15px;min-height:56px;padding:6px 4px}
+.valg button.paa[data-v="ja"]{background:var(--gronn);border-color:var(--gronn);color:#fff;font-weight:600}
+.valg button.paa[data-v="nei"]{background:var(--roed);border-color:var(--roed);color:#fff;font-weight:600}
+.valg button.paa[data-v="ia"]{background:var(--beige2);border-color:var(--damp);font-weight:600}
+
+label{display:block;font-size:15px;font-weight:600;margin:14px 0 6px}
+input[type=text],input[type=date],input[type=number],input[type=email],textarea,select{
+  width:100%;padding:13px 12px;border:1.5px solid var(--kant);border-radius:10px;
+  background:var(--hvit);font:inherit;font-size:16px;color:var(--blekk)
+}
+textarea{min-height:88px;resize:vertical}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid #8FB2CC;outline-offset:1px}
+.avvikfelt{margin-top:10px;border-left:4px solid var(--roed);padding-left:10px}
+.avvikfelt label{margin-top:0;color:var(--roed)}
+
+/* utstyr */
+.utstyr{margin-top:16px;background:var(--beige2);border-radius:10px;padding:12px 14px}
+.urad{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(0,0,0,.08)}
+.urad:first-of-type{border-top:0}
+.urad .un{flex:1;min-width:0;font-size:15px}
+.urad .un span{display:block;font-size:13px;color:var(--damp)}
+.urad input{width:92px;flex:0 0 92px;text-align:center;padding:10px 6px}
+.merke{display:inline-block;padding:1px 7px;border-radius:99px;font-size:12px;font-weight:600}
+.merke.ok{background:var(--gronn-lys);color:#3C5742}
+.merke.snart{background:#FFF097;color:#6B5A00}
+.merke.ut{background:var(--roed-lys);color:#8E1A12}
+.merke.ukjent{background:#EDE7DA;color:var(--damp)}
+
+/* knapper */
+.knapp{
+  display:block;width:100%;min-height:54px;border-radius:12px;border:1.5px solid var(--blekk);
+  background:var(--blekk);color:#fff;font:inherit;font-size:17px;font-weight:600;cursor:pointer;
+  padding:14px;margin:10px 0;text-align:center
+}
+.knapp.and{background:var(--hvit);color:var(--blekk);border-color:var(--kant);font-weight:400}
+.knapp.rod{background:var(--roed);border-color:var(--roed)}
+.knapp.gronn{background:var(--gronn);border-color:var(--gronn)}
+.knapp:disabled{opacity:.45}
+.knapperad{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--beige);
+  border-top:1px solid var(--kant);padding:10px 14px calc(env(safe-area-inset-bottom) + 10px)}
+.knapperad .inn{max-width:560px;margin:0 auto;display:flex;gap:10px}
+.knapperad .knapp{margin:0}
+
+/* lister */
+.liste a,.liste button.rad{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:15px 16px;
+  border:0;border-top:1px solid var(--kant);background:none;font:inherit;color:inherit;cursor:pointer
+}
+.liste .rad:first-child{border-top:0}
+.liste .rad .t{flex:1;min-width:0}
+.liste .rad .t b{display:block;font-weight:600}
+.liste .rad .t span{display:block;font-size:14px;color:var(--damp)}
+.velgbygg{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-top:1px solid var(--kant)}
+.velgbygg:first-of-type{border-top:0}
+.velgbygg input{width:26px;height:26px;flex:0 0 26px;margin:2px 0 0}
+.velgbygg .t b{display:block}
+.velgbygg .t span{font-size:14px;color:var(--damp)}
+
+.sok{margin:12px 0}
+.tom{text-align:center;color:var(--damp);padding:26px 10px}
+.status{display:inline-block;font-size:13px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--beige2)}
+.status.sendt{background:var(--gronn-lys);color:#3C5742}
+.lagret{position:fixed;left:50%;transform:translateX(-50%);bottom:86px;z-index:40;
+  background:var(--blekk);color:#fff;padding:9px 16px;border-radius:99px;font-size:14px;
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.lagret.vis{opacity:.95}
+.sammendrag dt{font-weight:600;margin-top:12px}
+.sammendrag dd{margin:2px 0 0}
+.avvikrad{border-left:4px solid var(--roed);padding:2px 0 2px 10px;margin:8px 0}
+.vlrad{border-left:4px solid var(--blaa);padding:2px 0 2px 10px;margin:8px 0}
+@media print{
+  header,.knapperad,.knapp,.lagret{display:none!important}
+  body{background:#fff}
+  .ramme{padding:0;max-width:none}
+  .kort{break-inside:avoid;border-color:#999}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header id="topp"></header>
+<div class="ramme" id="mid"></div>
+<div class="knapperad" id="bunn" style="display:none"><div class="inn"></div></div>
+<div class="lagret" id="lagret">Lagret på telefonen</div>
+
+<script src="grunndata.js"></script>
+<script>
+"use strict";
+
+/* ============================================================
+   Innstillinger som kan endres
+   ============================================================ */
+const APPVERSJON  = "2026-09-18-3";
+const SKJEMAVERSJON = 1;
+const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
+
+/* ============================================================
+   Skjemadefinisjon, speiler papirskjemaet rev. 02
+   ============================================================ */
+const BOLKER = [
+  { id:"roykvarslere", tittel:"Røykvarslere", utstyr:"brannvarsler", varslervalg:true,
+    info:[
+      "Det skal være varslere i alle soverom, oppholdsrom og rom med ildsted.",
+      "Varslere skiftes minimum hvert 10. år. Merk varsleren med dato for neste utskifting."
+    ],
+    punkter:[
+      {id:"rv1", sp:"Det er røykvarslere i alle soverom og rom med ildsted"},
+      {id:"rv2", sp:"Seriekoblede varslere er testet, og de utløser hverandre",
+        vis:s => s.varslertype !== "sentral"},
+      {id:"rv5", sp:"Brannsentralen er testet, og varslerne gir alarm",
+        vis:s => s.varslertype === "sentral"},
+      {id:"rv3", sp:"Batterier er skiftet siste 12 måneder",
+        vis:s => s.varslertype === "9v"},
+      {id:"rv4", sp:"Gamle batterier er lagret for seg, teipet og merket",
+        vis:s => s.varslertype === "9v"}
+    ]},
+  { id:"slukkere", tittel:"Brannslukningsapparater", utstyr:"brannslukker", utenIA:true,
+    info:[
+      "Vend slukkerne minst hvert kvartal så pulveret ikke klumper seg. Legg øret inntil og hør at det drysser.",
+      "Sjekk at slangen sitter godt og at splint og forsegling er hel.",
+      "Alle slukkere skal være skiltet, og ingen skal være eldre enn 5 år."
+    ],
+    punkter:[
+      {id:"bs1", sp:"Manometrene er kontrollert"},
+      {id:"bs2", sp:"Alle apparater er skiltet"},
+      {id:"bs3", sp:"Apparatene er vendt og kontrollert for klumper"}
+    ]},
+  { id:"ildsted", tittel:"Ildsted og skorstein", krever:"ildsted", feiing:true,
+    info:[
+      "Alt brennbart skal stå mer enn 30 cm fra ovn og rør.",
+      "Se etter snorer, spiker og kleshengere som er satt opp til tørk.",
+      "Kontroller skrog, kittfalser, brennplater, dør og glass på ovnene."
+    ],
+    punkter:[
+      {id:"il1", sp:"Avstand mellom ildsted og brennbart materiale er kontrollert"},
+      {id:"il2", sp:"Snorer og spiker satt opp til tørk er fjernet"},
+      {id:"il3", sp:"Vedovnene er kontrollert"},
+      {id:"il4", sp:"Det er gode muligheter for å fjerne aske"}
+    ]},
+  { id:"gassapparat", tittel:"Gassblussapparat", krever:"gass", utstyr:"regulatorsett",
+    info:[
+      "Opplysningsplakat om sikker bruk skal henge på kjøkkenet.",
+      "Regulatorsett skal ikke være eldre enn 5 år. Produksjonsåret står på slangen."
+    ],
+    punkter:[
+      {id:"ga1", sp:"Opplysningsplakat om bruk av gassapparat henger i nærheten"},
+      {id:"ga2", sp:"Koblinger og regulator er kontrollert"},
+      {id:"ga3", sp:"Det er skiftet deler på apparatet siste 12 måneder", utenIA:true,
+        ingenAvvik:true, tekstVed:"ja", tekstLabel:"Hva er skiftet?"}
+    ]},
+  { id:"gasslagring", tittel:"Gasslagring", krever:"gass",
+    info:[
+      "Flaskene skal stå oppreist, på stabilt underlag, med god avstand til ildsted.",
+      "Inntil 55 liter i oppholdsdel, inntil 90 liter i luftet bod med dør ut.",
+      "Aldri gass i rømningsvei eller i rom under terreng, heller ikke tomme flasker.",
+      "Skap eller dør foran flasker merkes med «gass under trykk»."
+    ],
+    punkter:[
+      {id:"gl1", sp:"Gassflasker innendørs er kontrollert, og skjulte flasker er skiltet"},
+      {id:"gl2", sp:"Gasslagring i bod er ryddig, oversiktlig og skiltet"}
+    ]},
+  { id:"romning", tittel:"Rømningsveier",
+    info:[
+      "Hyttene brukes av folk som ikke har vært der før. Det skal være lett å finne veien ut."
+    ],
+    punkter:[
+      {id:"rm1", sp:"Rømningsveiene er frie for hindringer"},
+      {id:"rm2", sp:"Rømningsvinduer og dører lar seg åpne"}
+    ]},
+  { id:"andre", tittel:"Andre kontrollpunkter",
+    punkter:[
+      {id:"an1", sp:"Plakaten om brannsikkerhet henger synlig på veggen"},
+      {id:"an2", sp:"Strømaggregat er utilgjengelig for besøkende", info:"Innlåst, eller tennplugg fjernet. Ikke aktuelt hvis hytta ikke har aggregat."},
+      {id:"an3", sp:"Alle overkøyer har sengehest"}
+    ]},
+  { id:"solcelle", tittel:"Solcelleanlegg", gate:"so0",
+    punkter:[
+      {id:"so0", sp:"Hytta har solcelleanlegg", utenIA:true, ingenAvvik:true},
+      {id:"so1", sp:"Polene på batteripakken er isolert eller skjermet mot kortslutning", bekreft:true},
+      {id:"so2", sp:"Koblingene til batteripakken sitter godt", bekreft:true},
+      {id:"so3", sp:"USB-laderen virker", bekreft:true},
+      {id:"so4", sp:"Kabler, armaturer og lamper er kontrollert for skader og løse koblinger", bekreft:true}
+    ]}
+];
+
+const VARSLERTYPER = [
+  {v:"9v",      t:"Løst 9-volts batteri"},
+  {v:"10ar",    t:"Integrert 10-årsbatteri"},
+  {v:"sentral", t:"Alarmanlegg med sentral"}
+];
+const UTSTYRSNAVN = {brannslukker:"Brannslukker", regulatorsett:"Regulatorsett", brannvarsler:"Røykvarslere"};
+const LEVETID = {brannslukker:5, regulatorsett:5, brannvarsler:10};
+
+/* ============================================================
+   Smaating
+   ============================================================ */
+const G = window.GRUNNDATA || {hytter:[], grunndataVersjon:null};
+const IAR = new Date().getFullYear();
+const idag = () => new Date().toISOString().slice(0,10);
+const nyId = () => "ik-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,7);
+const hytteAv = id => G.hytter.find(h => h.hytteId === id);
+function el(tag, attr, ...barn){
+  const n = document.createElement(tag);
+  for(const k in (attr||{})){
+    const v = attr[k];
+    if(v == null || v === false) continue;
+    if(k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else if(k === "class") n.className = v;
+    else if(k === "html") n.innerHTML = v;
+    else n.setAttribute(k, v === true ? "" : v);
+  }
+  barn.flat().forEach(b => b != null && b !== false && n.append(b));
+  return n;
+}
+function filnavnsikker(s){
+  return (s||"").replace(/[æ]/gi,"ae").replace(/[ø]/gi,"o").replace(/[å]/gi,"a")
+    .replace(/[^A-Za-z0-9._-]+/g,"-").replace(/^-+|-+$/g,"");
+}
+function nowIso(){ return new Date().toISOString().slice(0,19); }
+
+/* ============================================================
+   Lagring pa telefonen
+   ============================================================ */
+const NOKKEL = "ik-skjemaer-v1";
+let ALLE = [];
+function les(){
+  try{ ALLE = JSON.parse(localStorage.getItem(NOKKEL) || "[]"); }
+  catch(e){ ALLE = []; }
+  if(!Array.isArray(ALLE)) ALLE = [];
+}
+let lagreTimer = null;
+function lagre(stille){
+  try{
+    localStorage.setItem(NOKKEL, JSON.stringify(ALLE));
+    if(!stille) blink();
+  }catch(e){
+    alert("Telefonen klarte ikke å lagre skjemaet. Send inn det du har fylt ut, og gi beskjed.");
+  }
+}
+function lagreSnart(){
+  clearTimeout(lagreTimer);
+  lagreTimer = setTimeout(() => lagre(false), 400);
+}
+function blink(){
+  const t = document.getElementById("lagret");
+  t.classList.add("vis");
+  clearTimeout(blink._t);
+  blink._t = setTimeout(() => t.classList.remove("vis"), 900);
+}
+
+/* ============================================================
+   Skjemaobjektet
+   ============================================================ */
+function nyttSkjema(hytteId, byggIder){
+  const h = hytteAv(hytteId);
+  const valgte = h.bygg.filter(b => byggIder.includes(b.byggId));
+  const utstyr = [];
+  valgte.forEach(b => (b.utstyr||[]).forEach(u => utstyr.push({
+    utstyrId:u.utstyrId, byggId:b.byggId, byggNavn:b.navn, type:u.type,
+    levetidAar:u.levetidAar == null ? null : u.levetidAar,
+    tidligereAar:u.montertAar == null ? null : u.montertAar,
+    montertAar:u.montertAar == null ? null : u.montertAar
+  })));
+  const s = {
+    skjemaType:"dnt-internkontroll", skjemaVersjon:SKJEMAVERSJON, appversjon:APPVERSJON,
+    grunndataVersjon:G.grunndataVersjon,
+    id:nyId(), opprettet:nowIso(), sistEndret:nowIso(), sendt:null,
+    hytteId:h.hytteId, hytteNavn:h.navn, omraade:h.omraade || null,
+    dato:idag(), utfortAv:"",
+    varslertype:varslertypeFra(valgte),
+    omfang: valgte.length === h.bygg.length ? "anlegg" : "bygg",
+    bygg: valgte.map(b => ({byggId:b.byggId, navn:b.navn})),
+    svar:{}, avvik:{}, notater:{}, utstyr:utstyr,
+    feiing:{utfort:false, dato:""},
+    vedlikehold:[], kommentar:""
+  };
+  ALLE.unshift(s); lagre(true);
+  return s;
+}
+// foreslar varslertype ut fra det som star registrert, bare nar alle byggene er like
+function varslertypeFra(bygg){
+  const m = new Set(bygg.filter(b => b.harBrannutstyr).map(b =>
+    b.varslingstype === "alarmanlegg" ? "sentral" :
+    (b.batteritype === "9v-arlig" ? "9v" : (b.batteritype === "integrert-10ar" ? "10ar" : ""))));
+  m.delete("");
+  return m.size === 1 ? [...m][0] : null;
+}
+function skjemaAv(id){ return ALLE.find(s => s.id === id); }
+
+// hvilke bolker som gjelder for de valgte byggene
+function bolkerFor(s){
+  const h = hytteAv(s.hytteId);
+  const valgte = (h ? h.bygg : []).filter(b => s.bygg.some(x => x.byggId === b.byggId));
+  return BOLKER.map(bo => {
+    let relevant = true;
+    if(bo.krever) relevant = valgte.some(b => b[bo.krever]);
+    return Object.assign({}, bo, {relevant:relevant});
+  });
+}
+// punktene som gjelder akkurat na, etter varslertype og eventuell inngangsport
+function synligePunkter(s, bo){
+  const p = bo.punkter.filter(x => !x.vis || x.vis(s));
+  if(bo.gate && s.svar[bo.gate] !== "ja") return p.filter(x => x.id === bo.gate);
+  return p;
+}
+function punktStatus(s, bo){
+  const p = synligePunkter(s, bo);
+  const sv = p.filter(x => s.svar[x.id]);
+  const nei = p.filter(x => s.svar[x.id] === "nei" && !x.ingenAvvik).length;
+  return {av:p.length, svart:sv.length, nei:nei, ferdig:sv.length === p.length};
+}
+function fremdrift(s){
+  let av = 0, svart = 0;
+  bolkerFor(s).forEach(bo => { const st = punktStatus(s, bo); av += st.av; svart += st.svart; });
+  return av ? svart / av : 0;
+}
+function alleAvvik(s){
+  const ut = [];
+  bolkerFor(s).forEach(bo => {
+    synligePunkter(s, bo).forEach(p => {
+      if(s.svar[p.id] === "nei" && !p.ingenAvvik)
+        ut.push({bolk:bo.tittel, punkt:p.sp, kilde:"punkt", tekst:(s.avvik[p.id]||"").trim()});
+    });
+    if(bo.gate && s.svar[bo.gate] !== "ja") return;
+    const fri = (s.avvik["fri_"+bo.id]||"").trim();
+    if(fri) ut.push({bolk:bo.tittel, punkt:null, kilde:"fritekst", tekst:fri});
+  });
+  return ut;
+}
+
+function alleNotater(s){
+  const ut = [];
+  bolkerFor(s).forEach(bo => synligePunkter(s, bo).forEach(p => {
+    const t = (s.notater[p.id]||"").trim();
+    if(t) ut.push({bolk:bo.tittel, punkt:p.sp, tekst:t});
+  }));
+  return ut;
+}
+
+/* ============================================================
+   Navigering
+   ============================================================ */
+let SIDE = {navn:"start"};
+function gaTil(navn, data){
+  SIDE = Object.assign({navn:navn}, data||{});
+  location.hash = navn + (data && data.id ? "/"+data.id : "");
+  tegn();
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange", () => {
+  const [navn, id] = location.hash.replace(/^#/,"").split("/");
+  if((navn||"start") !== SIDE.navn || (id||null) !== (SIDE.id||null)){
+    SIDE = {navn:navn||"start", id:id||null};
+    tegn();
+  }
+});
+
+/* ============================================================
+   Tegning
+   ============================================================ */
+function tegn(){
+  const topp = document.getElementById("topp");
+  const mid  = document.getElementById("mid");
+  const bunn = document.getElementById("bunn");
+  topp.innerHTML = ""; mid.innerHTML = ""; bunn.firstChild.innerHTML = ""; bunn.style.display = "none";
+  const s = SIDE.id ? skjemaAv(SIDE.id) : null;
+  if(SIDE.navn !== "start" && SIDE.id && !s){ gaTil("start"); return; }
+  ({start:sideStart, hytte:sideVelgHytte, bygg:sideVelgBygg, skjema:sideSkjema,
+    send:sideSend, om:sideOm}[SIDE.navn] || sideStart)(topp, mid, bunn, s);
+}
+function hode(topp, tittel, undertittel, tilbake, andel){
+  const rad = el("div",{class:"rad"});
+  if(tilbake) rad.append(el("button",{class:"tilbake", onclick:tilbake, "aria-label":"Tilbake"},"‹ Tilbake"));
+  rad.append(el("div",{class:"tit"}, el("b",{},tittel), undertittel ? el("span",{},undertittel) : null));
+  topp.append(rad);
+  if(andel != null) topp.append(el("div",{class:"stolpe"}, el("i",{style:"width:"+Math.round(andel*100)+"%"})));
+}
+function bunnknapper(bunn, ...knapper){
+  bunn.style.display = "block";
+  knapper.filter(Boolean).forEach(k => bunn.firstChild.append(k));
+}
+
+/* --- Startside --- */
+function sideStart(topp, mid, bunn){
+  hode(topp, "Sikkerhetskontroll", "Selvbetjente hytter, DNT Oslo og Omegn");
+  const kladd = ALLE.filter(s => !s.sendt);
+  const sendt = ALLE.filter(s => s.sendt);
+
+  if(!ALLE.length){
+    mid.append(el("div",{class:"kort"},
+      el("h2",{},"Klar til bruk uten dekning"),
+      el("p",{class:"damp",style:"margin-top:8px"},
+        "Fyll ut kontrollen på hytta. Alt lagres på telefonen mens du går. "+
+        "Når du er tilbake i dekning sender du skjemaet til bygningsansvarlig."),
+      el("p",{class:"liten",style:"margin:0"},
+        "Legg siden til på hjemskjermen før du drar, så virker den også uten nett.")));
+  }
+  if(kladd.length){
+    mid.append(el("h2",{style:"margin:22px 0 0"}, kladd.length === 1 ? "Påbegynt kontroll" : "Påbegynte kontroller"));
+    mid.append(el("div",{class:"kort tett liste"}, kladd.map(s => skjemarad(s))));
+  }
+  if(sendt.length){
+    mid.append(el("h2",{style:"margin:22px 0 0"},"Sendt inn"));
+    mid.append(el("div",{class:"kort tett liste"}, sendt.slice(0,12).map(s => skjemarad(s))));
+  }
+  mid.append(el("button",{class:"knapp and",style:"margin-top:22px",onclick:()=>gaTil("om")},"Om skjemaet og hjelp"));
+  bunnknapper(bunn, el("button",{class:"knapp",onclick:()=>gaTil("hytte")},"Ny kontroll"));
+}
+function skjemarad(s){
+  const st = Math.round(fremdrift(s)*100);
+  return el("button",{class:"rad",onclick:()=>gaTil(s.sendt ? "send" : "skjema",{id:s.id})},
+    el("div",{class:"t"},
+      el("b",{},s.hytteNavn),
+      el("span",{}, s.dato + " · " + (s.omfang === "anlegg" ? "hele anlegget" : s.bygg.map(b=>b.navn).join(", ")))),
+    el("span",{class:"status"+(s.sendt?" sendt":"")}, s.sendt ? "Sendt" : st+" %"));
+}
+
+/* --- Velg hytte --- */
+function sideVelgHytte(topp, mid, bunn){
+  hode(topp, "Hvilken hytte?", G.hytter.length + " hytter", ()=>gaTil("start"));
+  const liste = el("div",{class:"kort tett liste"});
+  const sok = el("input",{type:"text",placeholder:"Søk etter hytte", autocomplete:"off",
+    oninput:e=>tegnListe(e.target.value)});
+  mid.append(el("div",{class:"sok"}, sok), liste);
+  function tegnListe(q){
+    q = (q||"").toLowerCase().trim();
+    const treff = G.hytter.filter(h => !q || h.navn.toLowerCase().includes(q) ||
+      (h.omraade||"").toLowerCase().includes(q));
+    liste.innerHTML = "";
+    if(!treff.length){ liste.append(el("div",{class:"tom"},"Ingen hytter matcher søket")); return; }
+    treff.forEach(h => liste.append(el("button",{class:"rad",onclick:()=>gaTil("bygg",{hytteId:h.hytteId})},
+      el("div",{class:"t"}, el("b",{},h.navn),
+        el("span",{}, [h.omraade, h.bygg.length + (h.bygg.length===1?" bygg":" bygg")].filter(Boolean).join(" · "))),
+      el("span",{class:"pil damp"},"›"))));
+  }
+  tegnListe("");
+}
+
+/* --- Velg bygg --- */
+function sideVelgBygg(topp, mid, bunn){
+  const h = hytteAv(SIDE.hytteId);
+  if(!h){ gaTil("hytte"); return; }
+  hode(topp, h.navn, "Hvilke bygg gjelder kontrollen?", ()=>gaTil("hytte"));
+  const valgt = new Set(h.bygg.map(b=>b.byggId));
+  const kort = el("div",{class:"kort"});
+  h.bygg.forEach(b => {
+    const boks = el("input",{type:"checkbox",checked:true,onchange:e=>{
+      e.target.checked ? valgt.add(b.byggId) : valgt.delete(b.byggId);
+      start.disabled = valgt.size === 0;
+    }});
+    kort.append(el("label",{class:"velgbygg"}, boks,
+      el("div",{class:"t"}, el("b",{},b.navn),
+        el("span",{}, [b.beskrivelse, b.ildsted?"ildsted":null, b.gass?"gass":null]
+          .filter(Boolean).join(" · ") || "ingen registrerte detaljer"))));
+  });
+  mid.append(el("p",{class:"damp"},"Alle bygg er huket av. Ta bort de du ikke kontrollerer nå."), kort);
+  const start = el("button",{class:"knapp",onclick:()=>{
+    const s = nyttSkjema(h.hytteId, [...valgt]);
+    gaTil("skjema",{id:s.id});
+  }},"Start kontrollen");
+  bunnknapper(bunn, start);
+}
+
+/* --- Selve skjemaet --- */
+function sideSkjema(topp, mid, bunn, s){
+  hode(topp, s.hytteNavn, s.omfang==="anlegg" ? "Hele anlegget" : s.bygg.map(b=>b.navn).join(", "),
+    ()=>gaTil("start"), fremdrift(s));
+
+  // hvem og nar
+  const topkort = el("div",{class:"kort"});
+  topkort.append(
+    el("label",{for:"f_dato"},"Dato for kontrollen"),
+    el("input",{type:"date",id:"f_dato",value:s.dato,onchange:e=>{s.dato=e.target.value;endret(s);}}),
+    el("label",{for:"f_av"},"Kontrollert av"),
+    el("input",{type:"text",id:"f_av",value:s.utfortAv,placeholder:"Navn",autocomplete:"name",
+      oninput:e=>{s.utfortAv=e.target.value;endret(s);}}));
+  mid.append(topkort);
+
+  // bolkene
+  const kort = el("div",{class:"kort tett"});
+  bolkerFor(s).forEach((bo,i) => kort.append(tegnBolk(s, bo, i+1)));
+  mid.append(kort);
+
+  // vedlikehold
+  mid.append(tegnVedlikehold(s));
+
+  // fri kommentar
+  mid.append(el("div",{class:"kort"},
+    el("h3",{},"Annet du vil melde fra om"),
+    el("textarea",{placeholder:"Valgfritt", oninput:e=>{s.kommentar=e.target.value;endret(s);}}, s.kommentar)));
+
+  bunnknapper(bunn,
+    el("button",{class:"knapp and",onclick:()=>gaTil("start")},"Lukk"),
+    el("button",{class:"knapp gronn",onclick:()=>gaTil("send",{id:s.id})},"Se over og send"));
+}
+
+function endret(s){ s.sistEndret = nowIso(); lagreSnart(); }
+
+function tegnBolk(s, bo, nr){
+  const st = punktStatus(s, bo);
+  const innhold = el("div",{class:"bolkinnhold skjult"});
+  const num = el("div",{class:"num"+(st.nei?" avvik":(st.ferdig?" ferdig":""))},
+    st.nei ? "!" : (st.ferdig ? "✓" : String(nr)));
+  const undertekst = el("span",{}, bolkTekst(s, bo));
+  const pil = el("span",{class:"pil"},"▾");
+  const hodeknapp = el("button",{class:"bolkhode",onclick:()=>{
+    const skjult = innhold.classList.toggle("skjult");
+    pil.textContent = skjult ? "▾" : "▴";
+    if(!skjult && !innhold.dataset.fylt){ fyllBolk(s, bo, innhold, num, undertekst); innhold.dataset.fylt = "1"; }
+  }}, num, el("div",{class:"t"}, el("b",{},bo.tittel), undertekst), pil);
+  return el("div",{class:"bolk"}, hodeknapp, innhold);
+}
+function bolkTekst(s, bo){
+  const st = punktStatus(s, bo);
+  if(!bo.relevant && !st.svart) return "Ikke registrert på disse byggene";
+  if(st.nei) return st.nei + (st.nei===1 ? " avvik" : " avvik") + ", " + st.svart + " av " + st.av + " svart";
+  if(st.ferdig) return "Ferdig";
+  return st.svart + " av " + st.av + " svart";
+}
+function oppdaterBolkhode(s, bo, num, undertekst){
+  const st = punktStatus(s, bo);
+  num.className = "num" + (st.nei ? " avvik" : (st.ferdig ? " ferdig" : ""));
+  num.textContent = st.nei ? "!" : (st.ferdig ? "✓" : (num.dataset.nr || num.textContent));
+  undertekst.textContent = bolkTekst(s, bo);
+  const stolpe = document.querySelector(".stolpe i");
+  if(stolpe) stolpe.style.width = Math.round(fremdrift(s)*100) + "%";
+}
+
+function fyllBolk(s, bo, boks, num, undertekst){
+  if(!num.dataset.nr) num.dataset.nr = num.textContent;
+  boks.innerHTML = "";
+  const tegnPaaNytt = () => fyllBolk(s, bo, boks, num, undertekst);
+
+  if(!bo.relevant)
+    boks.append(el("div",{class:"info"},"Ingen av byggene i denne kontrollen er registrert med "+
+      (bo.krever === "gass" ? "gass" : "ildsted")+". Svar «Ikke aktuelt», eller fyll ut hvis registreringen er feil."));
+
+  // type brannvarsling styrer hvilke punkter som vises
+  if(bo.varslervalg){
+    const valg = el("div",{class:"valg smal"});
+    VARSLERTYPER.forEach(vt => valg.append(el("button",{type:"button","data-v":vt.v,
+      class:(s.varslertype === vt.v ? "paa" : ""), onclick:()=>{
+        s.varslertype = (s.varslertype === vt.v ? null : vt.v);
+        endret(s); tegnPaaNytt(); oppdaterBolkhode(s, bo, num, undertekst);
+      }}, vt.t)));
+    boks.append(el("label",{},"Type brannvarsling på hytta"), valg);
+    if(!s.varslertype)
+      boks.append(el("div",{class:"liten",style:"margin-top:6px"},
+        "Velg type, så tilpasses resten av punktene."));
+  }
+
+  if(bo.info) boks.append(el("div",{class:"info"}, el("ul",{}, bo.info.map(t => el("li",{},t)))));
+
+  synligePunkter(s, bo).forEach(p => {
+    const rad = el("div",{class:"punkt"});
+    rad.append(el("div",{class:"sp"}, p.sp, p.info ? el("div",{class:"liten"},p.info) : null));
+    const tekstboks = el("div",{});
+    const valg = el("div",{class:"valg"});
+    const alternativ = p.bekreft ? [["ja","Kontrollert"]]
+      : (p.utenIA || bo.utenIA ? [["ja","Ja"],["nei","Nei"]] : [["ja","Ja"],["nei","Nei"],["ia","Ikke aktuelt"]]);
+    alternativ.forEach(([v,t]) => valg.append(el("button",{type:"button","data-v":v,
+      class:(s.svar[p.id]===v ? "paa" : ""), onclick:()=>{
+        s.svar[p.id] = (s.svar[p.id]===v ? null : v);
+        if(!s.svar[p.id]) delete s.svar[p.id];
+        endret(s);
+        if(bo.gate === p.id){ tegnPaaNytt(); oppdaterBolkhode(s, bo, num, undertekst); return; }
+        [...valg.children].forEach(c => c.className = (c.dataset.v === s.svar[p.id] ? "paa" : ""));
+        tegnTekstfelt();
+        oppdaterBolkhode(s, bo, num, undertekst);
+      }}, t)));
+
+    function tegnTekstfelt(){
+      tekstboks.innerHTML = "";
+      const utlos = p.tekstVed || "nei";
+      if(s.svar[p.id] !== utlos || (utlos === "nei" && p.ingenAvvik)) return;
+      const erAvvik = !p.ingenAvvik;
+      tekstboks.append(el("div",{class:"avvikfelt", style:erAvvik ? null : "border-color:var(--blaa)"},
+        el("label",{style:erAvvik ? null : "color:var(--blekk)"}, p.tekstLabel || "Hva er avviket?"),
+        el("textarea",{placeholder:erAvvik ? "Kort om hva som mangler eller er feil" : "Kort beskrivelse",
+          oninput:e=>{ (erAvvik ? s.avvik : s.notater)[p.id] = e.target.value; endret(s); }},
+          (erAvvik ? s.avvik : s.notater)[p.id] || "")));
+    }
+    tegnTekstfelt();
+    rad.append(valg, tekstboks);
+    boks.append(rad);
+  });
+
+  const stengt = bo.gate && s.svar[bo.gate] !== "ja";
+  if(bo.utstyr && !stengt) boks.append(tegnUtstyr(s, bo.utstyr));
+  if(bo.feiing && !stengt) boks.append(tegnFeiing(s));
+  if(!stengt)
+    boks.append(el("label",{},"Andre avvik i denne bolken"),
+      el("textarea",{placeholder:"Valgfritt",
+        oninput:e=>{s.avvik["fri_"+bo.id]=e.target.value;endret(s);}}, s.avvik["fri_"+bo.id]||""));
+}
+
+function tegnUtstyr(s, type){
+  const rader = s.utstyr.filter(u => u.type === type);
+  const boks = el("div",{class:"utstyr"},
+    el("h3",{}, UTSTYRSNAVN[type] + ", år sist skiftet"),
+    el("div",{class:"liten",style:"margin:-4px 0 8px"},
+      "Står året allerede riktig, lar du det stå. Har du skiftet i år, skriver du " + IAR + "."));
+  if(!rader.length){
+    boks.append(el("div",{class:"liten"},"Ingen " + UTSTYRSNAVN[type].toLowerCase() + " er registrert på disse byggene."));
+    return boks;
+  }
+  const h = hytteAv(s.hytteId);
+  rader.forEach(u => {
+    const b = h.bygg.find(x => x.byggId === u.byggId) || {};
+    const sentral = type === "brannvarsler" &&
+      (s.varslertype ? s.varslertype === "sentral" : b.varslingstype === "alarmanlegg");
+    const merke = el("span",{});
+    const felt = el("input",{type:"number",inputmode:"numeric",min:1990,max:IAR+1,
+      value:u.montertAar == null ? "" : u.montertAar, placeholder:"år",
+      oninput:e=>{
+        const v = parseInt(e.target.value,10);
+        u.montertAar = isNaN(v) ? null : v;
+        settMerke(merke, u, sentral); endret(s);
+      }});
+    settMerke(merke, u, sentral);
+    boks.append(el("div",{class:"urad"},
+      el("div",{class:"un"}, (s.bygg.length > 1 ? b.navn : (sentral ? "Brannsentral" : UTSTYRSNAVN[type])),
+        el("span",{}, sentral ? "År for forrige kontroll av sentralen" : merke)),
+      felt));
+  });
+  return boks;
+}
+function settMerke(merke, u, sentral){
+  const lev = sentral ? 2 :
+    (u.type === "brannvarsler" ? 10 : (u.levetidAar || LEVETID[u.type] || 5));
+  merke.className = "merke";
+  if(u.montertAar == null){ merke.classList.add("ukjent"); merke.textContent = "år mangler"; return; }
+  const forfall = u.montertAar + lev;
+  if(forfall < IAR){ merke.classList.add("ut"); merke.textContent = "skulle vært skiftet " + forfall; }
+  else if(forfall === IAR){ merke.classList.add("snart"); merke.textContent = "skiftes i år"; }
+  else { merke.classList.add("ok"); merke.textContent = "skiftes " + forfall; }
+}
+
+function tegnFeiing(s){
+  const boks = el("div",{class:"utstyr"});
+  const h = hytteAv(s.hytteId);
+  const sist = (h.bygg.filter(b => s.bygg.some(x=>x.byggId===b.byggId)).map(b => b.sistFeid)
+    .filter(Boolean).sort().pop());
+  boks.append(el("h3",{},"Feiing"),
+    el("div",{class:"liten",style:"margin:-4px 0 8px"},
+      sist ? "Sist registrert feid " + sist + "." : "Ingen feiing er registrert på hytta."));
+  const dato = el("input",{type:"date",value:s.feiing.dato,style:"margin-top:8px",
+    onchange:e=>{s.feiing.dato = e.target.value; endret(s);}});
+  dato.style.display = s.feiing.utfort ? "block" : "none";
+  const boksInn = el("input",{type:"checkbox",checked:s.feiing.utfort,style:"width:26px;height:26px",
+    onchange:e=>{
+      s.feiing.utfort = e.target.checked;
+      if(s.feiing.utfort && !s.feiing.dato) s.feiing.dato = s.dato;
+      dato.value = s.feiing.dato; dato.style.display = s.feiing.utfort ? "block" : "none";
+      endret(s);
+    }});
+  boks.append(el("label",{class:"velgbygg",style:"border:0;padding:6px 0"}, boksInn,
+    el("div",{class:"t"}, el("b",{},"Skorstein og røykrør er feid siden forrige kontroll"),
+      el("span",{},"Huk av og sett datoen for feiingen"))), dato);
+  return boks;
+}
+
+function tegnVedlikehold(s){
+  const kort = el("div",{class:"kort"});
+  kort.append(el("h3",{},"Vedlikeholdsbehov"),
+    el("p",{class:"damp",style:"font-size:15px"},
+      "Ting som bør utbedres, men som ikke er avvik på brannsikkerheten. Går rett inn i oppgavelista."));
+  const liste = el("div");
+  function tegnListe(){
+    liste.innerHTML = "";
+    s.vedlikehold.forEach((v,i) => {
+      liste.append(el("div",{class:"punkt"},
+        el("input",{type:"text",value:v.tittel,placeholder:"Kort overskrift",
+          oninput:e=>{v.tittel=e.target.value;endret(s);}}),
+        el("textarea",{style:"margin-top:8px",placeholder:"Utdyp om du vil",
+          oninput:e=>{v.notat=e.target.value;endret(s);}}, v.notat||""),
+        el("button",{class:"knapp and",style:"min-height:44px;margin-bottom:0",
+          onclick:()=>{s.vedlikehold.splice(i,1);endret(s);tegnListe();}},"Fjern punktet")));
+    });
+  }
+  tegnListe();
+  kort.append(liste, el("button",{class:"knapp and",onclick:()=>{
+    s.vedlikehold.push({tittel:"",notat:"",byggId:null}); endret(s); tegnListe();
+  }},"Legg til vedlikeholdsbehov"));
+  return kort;
+}
+
+/* --- Send inn --- */
+function sideSend(topp, mid, bunn, s){
+  hode(topp, "Se over og send", s.hytteNavn + ", " + s.dato, ()=>gaTil(s.sendt ? "start" : "skjema",{id:s.id}));
+  const avvik = alleAvvik(s);
+  const usvart = [];
+  bolkerFor(s).forEach(bo => synligePunkter(s, bo).forEach(p => {
+    if(!s.svar[p.id]) usvart.push(bo.tittel + ": " + p.sp); }));
+
+  const dl = el("dl",{class:"sammendrag"});
+  dl.append(el("dt",{},"Hytte"), el("dd",{}, s.hytteNavn + (s.omraade ? ", " + s.omraade : "")));
+  dl.append(el("dt",{},"Omfang"), el("dd",{}, s.omfang === "anlegg" ? "Hele anlegget" : s.bygg.map(b=>b.navn).join(", ")));
+  dl.append(el("dt",{},"Kontrollert av"), el("dd",{}, s.utfortAv || "ikke fylt ut"));
+  dl.append(el("dt",{},"Dato"), el("dd",{}, s.dato));
+  if(s.varslertype) dl.append(el("dt",{},"Brannvarsling"),
+    el("dd",{}, (VARSLERTYPER.find(v=>v.v===s.varslertype)||{}).t));
+  if(s.feiing.utfort) dl.append(el("dt",{},"Feiing"), el("dd",{}, "Utført " + (s.feiing.dato || s.dato)));
+  mid.append(el("div",{class:"kort"}, el("h2",{},"Sammendrag"), dl));
+
+  if(usvart.length)
+    mid.append(el("div",{class:"kort",style:"border-color:#E0B400;background:#FFFDF0"},
+      el("h3",{}, usvart.length + (usvart.length===1 ? " punkt er ikke besvart" : " punkter er ikke besvart")),
+      el("ul",{class:"liten",style:"margin:0;padding-left:18px"}, usvart.slice(0,12).map(t=>el("li",{},t))),
+      el("p",{class:"liten",style:"margin:10px 0 0"},"Du kan sende likevel, men fyll gjerne ut resten først.")));
+
+  const ak = el("div",{class:"kort"}, el("h3",{}, avvik.length ? avvik.length + (avvik.length===1?" avvik":" avvik") : "Ingen avvik registrert"));
+  avvik.forEach(a => ak.append(el("div",{class:"avvikrad"},
+    el("b",{}, a.punkt || a.bolk), el("div",{class:"liten"}, a.tekst || "ingen beskrivelse"))));
+  mid.append(ak);
+
+  const notater = alleNotater(s);
+  if(notater.length){
+    const nk = el("div",{class:"kort"}, el("h3",{},"Merknader"));
+    notater.forEach(n => nk.append(el("div",{class:"vlrad"}, el("b",{},n.punkt),
+      el("div",{class:"liten"}, n.tekst))));
+    mid.append(nk);
+  }
+
+  const vl = s.vedlikehold.filter(v => (v.tittel||"").trim() || (v.notat||"").trim());
+  if(vl.length){
+    const vk = el("div",{class:"kort"}, el("h3",{}, vl.length + (vl.length===1?" vedlikeholdsbehov":" vedlikeholdsbehov")));
+    vl.forEach(v => vk.append(el("div",{class:"vlrad"}, el("b",{},v.tittel||"uten overskrift"),
+      v.notat ? el("div",{class:"liten"},v.notat) : null)));
+    mid.append(vk);
+  }
+
+  const endredeAar = s.utstyr.filter(u => u.montertAar !== u.tidligereAar);
+  if(endredeAar.length){
+    const uk = el("div",{class:"kort"}, el("h3",{},"Endrede årstall"));
+    endredeAar.forEach(u => uk.append(el("div",{class:"liten"},
+      u.byggNavn + ", " + UTSTYRSNAVN[u.type].toLowerCase() + ": " +
+      (u.tidligereAar == null ? "ikke registrert" : u.tidligereAar) + " → " + (u.montertAar == null ? "tomt" : u.montertAar))));
+    mid.append(uk);
+  }
+
+  mid.append(el("div",{class:"kort",style:"background:var(--blaa);border-color:#A9C6D9"},
+    el("h3",{},"Slik sender du"),
+    el("p",{style:"font-size:15px;margin-bottom:8px"},
+      "Trykk Del skjemaet og velg e-post. Skjemafila legger seg som vedlegg. Send til:"),
+    el("p",{style:"font-weight:600;margin-bottom:8px"}, MOTTAKER),
+    el("button",{class:"knapp and",style:"min-height:44px",onclick:()=>{
+      navigator.clipboard ? navigator.clipboard.writeText(MOTTAKER).then(()=>varsle("Adressen er kopiert")) : varsle(MOTTAKER);
+    }},"Kopier adressen"),
+    el("p",{class:"liten",style:"margin:10px 0 0"},
+      "Har du ikke dekning ennå, gjør du dette senere. Skjemaet ligger trygt på telefonen.")));
+
+  mid.append(el("button",{class:"knapp and",onclick:()=>window.print()},"Skriv ut eller lag PDF"));
+  if(!s.sendt) mid.append(el("button",{class:"knapp and",onclick:()=>{
+    if(confirm("Slette hele kontrollen for " + s.hytteNavn + "?")){
+      ALLE = ALLE.filter(x => x.id !== s.id); lagre(true); gaTil("start");
+    }}},"Slett kontrollen"));
+
+  bunnknapper(bunn,
+    el("button",{class:"knapp and",onclick:()=>gaTil("skjema",{id:s.id})},"Rediger"),
+    el("button",{class:"knapp gronn",onclick:()=>send(s)}, s.sendt ? "Send på nytt" : "Del skjemaet"));
+}
+
+function eksport(s){
+  const ut = JSON.parse(JSON.stringify(s));
+  ut.avvik = alleAvvik(s);
+  ut.notater = alleNotater(s);
+  ut.vedlikehold = s.vedlikehold.filter(v => (v.tittel||"").trim() || (v.notat||"").trim());
+  ut.utstyr = s.utstyr.map(u => ({utstyrId:u.utstyrId, byggId:u.byggId, type:u.type, levetidAar:u.levetidAar,
+    tidligereAar:u.tidligereAar, montertAar:u.montertAar, endret:u.montertAar !== u.tidligereAar}));
+  ut.eksportert = nowIso();
+  delete ut.sendt;
+  return ut;
+}
+async function send(s){
+  const data = eksport(s);
+  const navn = "Internkontroll_" + filnavnsikker(s.hytteNavn) + "_" + s.dato + ".json";
+  const blob = new Blob([JSON.stringify(data, null, 1)], {type:"application/json"});
+  const fil = new File([blob], navn, {type:"application/json"});
+  const tekst = "Sikkerhetskontroll " + s.hytteNavn + " " + s.dato +
+    (s.utfortAv ? ", kontrollert av " + s.utfortAv : "") + ".";
+  let delt = false;
+  try{
+    if(navigator.canShare && navigator.canShare({files:[fil]})){
+      await navigator.share({files:[fil], title:"Sikkerhetskontroll " + s.hytteNavn, text:tekst});
+      delt = true;
+    }
+  }catch(e){
+    if(e && e.name === "AbortError") return;      // brukeren avbrot selv
+  }
+  if(!delt){
+    const url = URL.createObjectURL(blob);
+    const a = el("a",{href:url,download:navn});
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    varsle("Fila er lastet ned. Legg den ved en e-post til " + MOTTAKER);
+  }
+  s.sendt = nowIso(); lagre(true); tegn();
+}
+function varsle(t){
+  const b = document.getElementById("lagret");
+  b.textContent = t; b.classList.add("vis");
+  clearTimeout(varsle._t);
+  varsle._t = setTimeout(()=>{ b.classList.remove("vis"); b.textContent = "Lagret på telefonen"; }, 3200);
+}
+
+/* --- Om --- */
+function sideOm(topp, mid, bunn){
+  hode(topp, "Om skjemaet", "Versjon " + APPVERSJON, ()=>gaTil("start"));
+  mid.append(el("div",{class:"kort"},
+    el("h3",{},"Slik virker det"),
+    el("ul",{style:"padding-left:18px;margin:0"},
+      el("li",{},"Alt du fyller ut lagres på telefonen med én gang, også uten dekning."),
+      el("li",{},"Du kan lukke appen og fortsette senere."),
+      el("li",{},"Når du er i dekning, sender du skjemaet som vedlegg til " + MOTTAKER + "."),
+      el("li",{},"Fila går rett inn i brannvernoversikten hos bygningsansvarlig."))));
+  mid.append(el("div",{class:"kort"},
+    el("h3",{},"Legg appen på hjemskjermen"),
+    el("p",{style:"font-size:15px"},"Gjør dette hjemme, mens du har nett. Da virker skjemaet på fjellet."),
+    el("p",{class:"liten",style:"margin:0"},
+      "iPhone: Del-knappen i Safari, så Legg til på Hjem-skjerm. "+
+      "Android: menyen i Chrome, så Legg til på startskjerm.")));
+  mid.append(el("div",{class:"kort"},
+    el("h3",{},"Hyttedata"),
+    el("p",{class:"liten",style:"margin:0"},
+      G.hytter.length + " hytter, datafil versjon " + (G.grunndataVersjon==null?"ukjent":G.grunndataVersjon) +
+      ", oppdatert " + (G.laget||"ukjent") + ".")));
+  const sendte = ALLE.filter(s=>s.sendt).length;
+  if(sendte) mid.append(el("button",{class:"knapp and",onclick:()=>{
+    if(confirm("Fjerne " + sendte + " sendte skjemaer fra telefonen?")){
+      ALLE = ALLE.filter(s=>!s.sendt); lagre(true); gaTil("start");
+    }}},"Rydd bort sendte skjemaer"));
+}
+
+/* ============================================================
+   Oppstart
+   ============================================================ */
+les();
+const [h0, id0] = location.hash.replace(/^#/,"").split("/");
+SIDE = {navn:h0 || "start", id:id0 || null};
+if(SIDE.navn === "bygg" || SIDE.navn === "hytte") SIDE = {navn:"start"};
+tegn();
+window.addEventListener("beforeunload", ()=>{ clearTimeout(lagreTimer); lagre(true); });
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden) lagre(true); });
+if("serviceWorker" in navigator)
+  window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
