@@ -177,7 +177,7 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid #
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-18-4";
+const APPVERSJON  = "2026-09-18-5";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -830,29 +830,21 @@ function sideSend(topp, mid, bunn, s){
   mid.append(el("div",{class:"kort",style:"background:var(--blaa);border-color:#A9C6D9"},
     el("h3",{},"Slik sender du"),
     el("p",{style:"font-size:15px;margin-bottom:8px"}, deler
-      ? "Trykk Del skjemaet nederst og velg e-postappen. Skjemafila legger seg som vedlegg. Send til:"
-      : "Denne telefonen deler ikke filer direkte. Last ned fila, åpne e-post og legg den ved. Send til:"),
+      ? "Trykk Send inn nederst, velg e-postappen, og send til denne adressen:"
+      : "Denne telefonen deler ikke filer direkte. Last ned kontrollfila, åpne e-post og legg den ved. Send til:"),
     el("p",{style:"font-weight:600;margin-bottom:8px"}, MOTTAKER),
-    el("button",{class:"knapp and",style:"min-height:44px",onclick:()=>{
-      navigator.clipboard ? navigator.clipboard.writeText(MOTTAKER).then(()=>varsle("Adressen er kopiert")) : varsle(MOTTAKER);
-    }},"Kopier adressen"),
-    el("button",{class:"knapp and",style:"min-height:44px",
-      onclick:()=>{ location.href = epostLenke(s); }},"Åpne e-post med adressen utfylt"),
-    el("button",{class:"knapp and",style:"min-height:44px",
-      onclick:()=>{ lastNed(eksportFil(s)); varsle("Fila er lastet ned"); }},"Last ned fila"),
-    el("p",{class:"liten",style:"margin:10px 0 0"},
-      "Har du ikke dekning ennå, gjør du dette senere. Skjemaet ligger trygt på telefonen.")));
+    el("p",{class:"liten",style:"margin:0"}, deler
+      ? "Et sammendrag følger med i e-posten, og selve skjemaet ligger som vedlegg. "+
+        "Har du ikke dekning ennå, gjør du det senere. Skjemaet ligger trygt på telefonen."
+      : "Skjemaet lastes ned som en tekstfil. Åpne e-posten, legg fila ved, og send. "+
+        "Har du ikke dekning ennå, gjør du det senere. Skjemaet ligger trygt på telefonen.")));
 
-  mid.append(el("button",{class:"knapp and",onclick:()=>window.print()},"Skriv ut eller lag PDF"));
-  if(!s.sendt) mid.append(el("button",{class:"knapp and",onclick:()=>{
-    if(confirm("Slette hele kontrollen for " + s.hytteNavn + "?")){
-      ALLE = ALLE.filter(x => x.id !== s.id); lagre(true); gaTil("start");
-    }}},"Slett kontrollen"));
+  mid.append(el("button",{class:"knapp and",
+    onclick:()=>{ lastNed(eksportFil(s)); varsle("Kontrollfila er lastet ned"); }},"Last ned kontrollfil"));
 
   bunnknapper(bunn,
     el("button",{class:"knapp and",onclick:()=>gaTil("skjema",{id:s.id})},"Rediger"),
-    el("button",{class:"knapp gronn",onclick:()=>send(s)},
-      deler ? (s.sendt ? "Del på nytt" : "Del skjemaet") : "Last ned skjemaet"));
+    el("button",{class:"knapp gronn",onclick:()=>send(s)}, s.sendt ? "Send på nytt" : "Send inn"));
 }
 
 function eksport(s){
@@ -882,12 +874,39 @@ function kanDeleFil(){
     return !!(navigator.canShare && navigator.canShare({files:[f]}));
   }catch(e){ return false; }
 }
-function epostLenke(s){
-  return "mailto:" + MOTTAKER +
-    "?subject=" + encodeURIComponent("Sikkerhetskontroll " + s.hytteNavn + " " + s.dato) +
-    "&body=" + encodeURIComponent(
-      "Kontrollskjemaet ligger som vedlegg.\n\nHytte: " + s.hytteNavn +
-      "\nDato: " + s.dato + (s.utfortAv ? "\nKontrollert av: " + s.utfortAv : "") + "\n");
+// Teksten som folger med i e-posten, sa den kan leses uten a apne vedlegget
+function epostTekst(s){
+  const avvik = alleAvvik(s);
+  const vl = s.vedlikehold.filter(v => (v.tittel||"").trim() || (v.notat||"").trim());
+  const notater = alleNotater(s);
+  const l = ["Årlig sikkerhetskontroll, " + s.hytteNavn, ""];
+  l.push("Dato: " + s.dato);
+  if(s.utfortAv) l.push("Kontrollert av: " + s.utfortAv);
+  l.push("Omfang: " + (s.omfang === "anlegg" ? "hele anlegget" : s.bygg.map(b=>b.navn).join(", ")));
+  if(s.varslertype) l.push("Brannvarsling: " + (VARSLERTYPER.find(v=>v.v===s.varslertype)||{}).t);
+  l.push("Feiing: " + (s.feiing.utfort ? "utført " + (s.feiing.dato || s.dato) : "ikke utført"));
+  l.push("");
+  l.push(avvik.length ? "Avvik (" + avvik.length + "):" : "Ingen avvik funnet.");
+  avvik.forEach(a => l.push("  - " + (a.punkt || a.bolk) + (a.tekst ? ": " + a.tekst : "")));
+  if(vl.length){
+    l.push("");
+    l.push("Vedlikeholdsbehov (" + vl.length + "):");
+    vl.forEach(v => l.push("  - " + (v.tittel || v.notat)));
+  }
+  if(notater.length){
+    l.push("");
+    l.push("Merknader:");
+    notater.forEach(n => l.push("  - " + n.punkt + ": " + n.tekst));
+  }
+  if((s.kommentar||"").trim()){
+    l.push("");
+    l.push("Kommentar fra tilsynet:");
+    l.push("  " + s.kommentar.trim());
+  }
+  l.push("");
+  l.push("Hele skjemaet ligger som vedlegg, og leses inn i brannvernoversikten derfra.");
+  l.push("Sendt fra sikkerhetskontroll-appen, versjon " + APPVERSJON + ".");
+  return l.join("\n");
 }
 function lastNed(f){
   const url = URL.createObjectURL(f.blob);
@@ -901,9 +920,8 @@ async function send(s){
     try{
       await navigator.share({
         files:[new File([f.blob], f.navn, {type:"text/plain"})],
-        title:"Sikkerhetskontroll " + s.hytteNavn,
-        text:"Sikkerhetskontroll " + s.hytteNavn + " " + s.dato +
-             (s.utfortAv ? ", kontrollert av " + s.utfortAv : "") + "."
+        title:"Sikkerhetskontroll " + s.hytteNavn + " " + s.dato,
+        text:epostTekst(s)
       });
       s.sendt = nowIso(); lagre(true); tegn();
       return;
@@ -948,6 +966,11 @@ function sideOm(topp, mid, bunn){
     if(confirm("Fjerne " + sendte + " sendte skjemaer fra telefonen?")){
       ALLE = ALLE.filter(s=>!s.sendt); lagre(true); gaTil("start");
     }}},"Rydd bort sendte skjemaer"));
+  const kladder = ALLE.filter(s=>!s.sendt).length;
+  if(kladder) mid.append(el("button",{class:"knapp and",onclick:()=>{
+    if(confirm("Slette " + kladder + " påbegynte skjemaer som ikke er sendt?")){
+      ALLE = ALLE.filter(s=>s.sendt); lagre(true); gaTil("start");
+    }}},"Slett påbegynte skjemaer"));
 }
 
 /* ============================================================
