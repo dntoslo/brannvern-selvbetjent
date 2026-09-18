@@ -161,6 +161,9 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid #
 .klar.nei .prikk{background:#E0B400;color:var(--blekk)}
 .klar ol{margin:12px 0 0;padding-left:22px}
 .klar ol li{margin:6px 0}
+ol.steg{margin:10px 0 0;padding-left:24px;font-size:16px}
+ol.steg li{margin:0 0 10px;padding-left:2px}
+ol.steg li:last-child{margin-bottom:0}
 .sammendrag dt{font-weight:600;margin-top:12px}
 .sammendrag dd{margin:2px 0 0}
 .avvikrad{border-left:4px solid var(--roed);padding:2px 0 2px 10px;margin:8px 0}
@@ -187,7 +190,7 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid #
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-18-7";
+const APPVERSJON  = "2026-09-18-9";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -311,7 +314,7 @@ function el(tag, attr, ...barn){
 }
 function filnavnsikker(s){
   return (s||"").replace(/[æ]/gi,"ae").replace(/[ø]/gi,"o").replace(/[å]/gi,"a")
-    .replace(/[^A-Za-z0-9._-]+/g,"-").replace(/^-+|-+$/g,"");
+    .replace(/[^A-Za-z0-9 ._-]+/g," ").replace(/\s+/g," ").trim();
 }
 function nowIso(){ return new Date().toISOString().slice(0,19); }
 
@@ -917,18 +920,23 @@ function sideSend(topp, mid, bunn, s){
   }
 
   const deler = kanDeleFil();
+  const adresse = el("b",{}, MOTTAKER);
   mid.append(el("div",{class:"kort",style:"background:var(--blaa);border-color:#A9C6D9"},
     el("h3",{},"Slik sender du"),
-    el("p",{style:"font-size:15px;margin-bottom:8px"}, deler
-      ? "Trykk Send inn nederst og velg e-postappen. Adressen står øverst i meldingen, "+
-        "klar til å kopieres inn i Til-feltet:"
-      : "Denne telefonen deler ikke filer direkte. Last ned kontrollfila, åpne e-post og legg den ved. Send til:"),
-    el("p",{style:"font-weight:600;margin-bottom:8px"}, MOTTAKER),
-    el("p",{class:"liten",style:"margin:0"}, deler
-      ? "Et sammendrag følger med i e-posten, og selve skjemaet ligger som vedlegg. "+
-        "Har du ikke dekning ennå, gjør du det senere. Skjemaet ligger trygt på telefonen."
-      : "Skjemaet lastes ned som en tekstfil. Åpne e-posten, legg fila ved, og send. "+
-        "Har du ikke dekning ennå, gjør du det senere. Skjemaet ligger trygt på telefonen.")));
+    deler
+      ? el("ol",{class:"steg"},
+          el("li",{},"Trykk Send inn nederst på siden."),
+          el("li",{},"Velg e-postappen din, for eksempel Gmail, Outlook eller Mail."),
+          el("li",{},"Fyll inn ", adresse, " i Til-feltet, og send e-posten når du har dekning."))
+      : el("ol",{class:"steg"},
+          el("li",{},"Trykk Last ned kontrollfil."),
+          el("li",{},"Åpne e-postappen din og lag en ny melding."),
+          el("li",{},"Legg ved fila fra nedlastingene, fyll inn ", adresse,
+                     " i Til-feltet, og send e-posten når du har dekning.")),
+    el("p",{class:"liten",style:"margin:12px 0 0"}, deler
+      ? "Skjemaet blir med som vedlegg, og et sammendrag legger seg i selve meldingen. "+
+        "Har du ikke dekning ennå, gjør du dette senere. Skjemaet ligger trygt på telefonen."
+      : "Har du ikke dekning ennå, gjør du dette senere. Skjemaet ligger trygt på telefonen.")));
 
   mid.append(el("button",{class:"knapp and",
     onclick:()=>{ lastNed(eksportFil(s)); varsle("Kontrollfila er lastet ned"); }},"Last ned kontrollfil"));
@@ -954,7 +962,7 @@ function eksport(s){
 function eksportFil(s){
   const tekst = JSON.stringify(eksport(s), null, 1);
   return {
-    navn: "Internkontroll_" + filnavnsikker(s.hytteNavn) + "_" + s.dato + ".txt",
+    navn: "Sikkerhetskontroll " + filnavnsikker(s.hytteNavn) + " " + s.dato + ".txt",
     tekst: tekst,
     blob: new Blob([tekst], {type:"text/plain"})
   };
