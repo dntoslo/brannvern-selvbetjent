@@ -177,7 +177,7 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid #
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-18-5";
+const APPVERSJON  = "2026-09-18-6";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -830,7 +830,8 @@ function sideSend(topp, mid, bunn, s){
   mid.append(el("div",{class:"kort",style:"background:var(--blaa);border-color:#A9C6D9"},
     el("h3",{},"Slik sender du"),
     el("p",{style:"font-size:15px;margin-bottom:8px"}, deler
-      ? "Trykk Send inn nederst, velg e-postappen, og send til denne adressen:"
+      ? "Trykk Send inn nederst og velg e-postappen. Adressen står øverst i meldingen, "+
+        "klar til å kopieres inn i Til-feltet:"
       : "Denne telefonen deler ikke filer direkte. Last ned kontrollfila, åpne e-post og legg den ved. Send til:"),
     el("p",{style:"font-weight:600;margin-bottom:8px"}, MOTTAKER),
     el("p",{class:"liten",style:"margin:0"}, deler
@@ -879,7 +880,8 @@ function epostTekst(s){
   const avvik = alleAvvik(s);
   const vl = s.vedlikehold.filter(v => (v.tittel||"").trim() || (v.notat||"").trim());
   const notater = alleNotater(s);
-  const l = ["Årlig sikkerhetskontroll, " + s.hytteNavn, ""];
+  const l = ["Sendes til: " + MOTTAKER, "",
+             "Årlig sikkerhetskontroll, " + s.hytteNavn, ""];
   l.push("Dato: " + s.dato);
   if(s.utfortAv) l.push("Kontrollert av: " + s.utfortAv);
   l.push("Omfang: " + (s.omfang === "anlegg" ? "hele anlegget" : s.bygg.map(b=>b.navn).join(", ")));
