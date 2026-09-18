@@ -151,6 +151,16 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid #
   background:var(--blekk);color:#fff;padding:9px 16px;border-radius:99px;font-size:14px;
   opacity:0;pointer-events:none;transition:opacity .2s}
 .lagret.vis{opacity:.95}
+.klar{border-left:6px solid var(--damp)}
+.klar.ja{border-left-color:var(--gronn);background:var(--gronn-lys)}
+.klar.nei{border-left-color:#E0B400;background:#FFFDF0}
+.klar .topp{display:flex;align-items:center;gap:10px}
+.klar .prikk{flex:0 0 22px;height:22px;border-radius:50%;background:var(--damp);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.klar.ja .prikk{background:var(--gronn)}
+.klar.nei .prikk{background:#E0B400;color:var(--blekk)}
+.klar ol{margin:12px 0 0;padding-left:22px}
+.klar ol li{margin:6px 0}
 .sammendrag dt{font-weight:600;margin-top:12px}
 .sammendrag dd{margin:2px 0 0}
 .avvikrad{border-left:4px solid var(--roed);padding:2px 0 2px 10px;margin:8px 0}
@@ -177,7 +187,7 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid #
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-18-6";
+const APPVERSJON  = "2026-09-18-7";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -467,20 +477,100 @@ function bunnknapper(bunn, ...knapper){
   knapper.filter(Boolean).forEach(k => bunn.firstChild.append(k));
 }
 
+/* --- Er appen klar til bruk uten dekning? --- */
+let INSTALLER = null;   // Android tilbyr av og til a installere direkte
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); INSTALLER = e; tegn(); });
+
+function fraHjemskjerm(){
+  try{
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
+      || navigator.standalone === true;
+  }catch(e){ return false; }
+}
+function erIos(){
+  const u = navigator.userAgent || "";
+  return /iPad|iPhone|iPod/.test(u) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+async function filerLagret(){
+  try{
+    if(!("caches" in window)) return false;
+    const navn = (await caches.keys()).filter(n => n.indexOf("internkontroll-") === 0);
+    for(const n of navn){
+      const c = await caches.open(n);
+      if(await c.match("./index.html") || await c.match("./")) return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+function klargjoringskort(){
+  const kort = el("div",{class:"kort klar"});
+  const prikk = el("div",{class:"prikk"},"…");
+  const tit = el("b",{},"Sjekker om appen er klar");
+  const kropp = el("div",{style:"margin-top:10px"});
+  kort.append(el("div",{class:"topp"}, prikk, el("div",{}, tit)), kropp);
+
+  filerLagret().then(lagret => {
+    const hjem = fraHjemskjerm();
+    kropp.innerHTML = "";
+    if(lagret && hjem){
+      kort.classList.add("ja"); prikk.textContent = "✓";
+      tit.textContent = "Klar til bruk uten dekning";
+      kropp.append(el("div",{class:"liten"},
+        "Appen ligger på hjemskjermen, og alt den trenger er lagret på telefonen. "+
+        "Vil du være helt sikker, slå på flymodus og åpne den herfra."));
+      return;
+    }
+    kort.classList.add("nei"); prikk.textContent = "!";
+    if(!lagret){
+      tit.textContent = "Appen laster fortsatt ned";
+      kropp.append(el("div",{class:"liten"},
+        "La siden stå åpen noen sekunder mens du har dekning, og last den så inn på nytt. "+
+        "Skjer det ingenting, kan nettleseren være i privat modus, som ikke får lagre."),
+        el("button",{class:"knapp and",style:"min-height:44px",
+          onclick:()=>location.reload()},"Last inn på nytt"));
+      return;
+    }
+    tit.textContent = "Legg appen på hjemskjermen";
+    kropp.append(el("div",{class:"liten"},
+      "Filene er lagret, men gjør dette før du drar. Åpner du appen fra hjemskjermen, "+
+      "beholder telefonen skjemaene dine, og appen starter selv om du er uten dekning."));
+    if(INSTALLER){
+      kropp.append(el("button",{class:"knapp",style:"min-height:48px",onclick:async()=>{
+        INSTALLER.prompt(); await INSTALLER.userChoice; INSTALLER = null; tegn();
+      }},"Legg til på hjemskjermen"));
+      return;
+    }
+    kropp.append(erIos()
+      ? el("ol",{},
+          el("li",{},"Trykk delingsknappen nederst i Safari, firkanten med pil opp."),
+          el("li",{},"Bla ned til «Legg til på Hjem-skjerm»."),
+          el("li",{},"Trykk «Legg til» oppe til høyre."))
+      : el("ol",{},
+          el("li",{},"Trykk menyen med tre prikker oppe til høyre i Chrome."),
+          el("li",{},"Velg «Legg til på startskjerm» eller «Installer app»."),
+          el("li",{},"Bekreft.")));
+    kropp.append(el("div",{class:"liten",style:"margin-top:10px"},
+      "Deretter åpner du appen fra ikonet, ikke fra nettleseren."));
+  });
+  return kort;
+}
+
 /* --- Startside --- */
 function sideStart(topp, mid, bunn){
   hode(topp, "Sikkerhetskontroll", "Selvbetjente hytter, DNT Oslo og Omegn");
   const kladd = ALLE.filter(s => !s.sendt);
   const sendt = ALLE.filter(s => s.sendt);
 
+  mid.append(klargjoringskort());
   if(!ALLE.length){
     mid.append(el("div",{class:"kort"},
-      el("h2",{},"Klar til bruk uten dekning"),
-      el("p",{class:"damp",style:"margin-top:8px"},
-        "Fyll ut kontrollen på hytta. Alt lagres på telefonen mens du går. "+
-        "Når du er tilbake i dekning sender du skjemaet til bygningsansvarlig."),
-      el("p",{class:"liten",style:"margin:0"},
-        "Legg siden til på hjemskjermen før du drar, så virker den også uten nett.")));
+      el("h3",{},"Slik virker den"),
+      el("ol",{style:"padding-left:20px;margin:0"},
+        el("li",{},"Start en kontroll og velg hytte før du drar, eller på hytta."),
+        el("li",{},"Fyll ut underveis. Alt lagres på telefonen, også uten dekning."),
+        el("li",{},"Send inn når du er tilbake i dekning."))));
   }
   if(kladd.length){
     mid.append(el("h2",{style:"margin:22px 0 0"}, kladd.length === 1 ? "Påbegynt kontroll" : "Påbegynte kontroller"));
