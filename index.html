@@ -177,7 +177,7 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid #
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-18-3";
+const APPVERSJON  = "2026-09-18-4";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -826,14 +826,20 @@ function sideSend(topp, mid, bunn, s){
     mid.append(uk);
   }
 
+  const deler = kanDeleFil();
   mid.append(el("div",{class:"kort",style:"background:var(--blaa);border-color:#A9C6D9"},
     el("h3",{},"Slik sender du"),
-    el("p",{style:"font-size:15px;margin-bottom:8px"},
-      "Trykk Del skjemaet og velg e-post. Skjemafila legger seg som vedlegg. Send til:"),
+    el("p",{style:"font-size:15px;margin-bottom:8px"}, deler
+      ? "Trykk Del skjemaet nederst og velg e-postappen. Skjemafila legger seg som vedlegg. Send til:"
+      : "Denne telefonen deler ikke filer direkte. Last ned fila, åpne e-post og legg den ved. Send til:"),
     el("p",{style:"font-weight:600;margin-bottom:8px"}, MOTTAKER),
     el("button",{class:"knapp and",style:"min-height:44px",onclick:()=>{
       navigator.clipboard ? navigator.clipboard.writeText(MOTTAKER).then(()=>varsle("Adressen er kopiert")) : varsle(MOTTAKER);
     }},"Kopier adressen"),
+    el("button",{class:"knapp and",style:"min-height:44px",
+      onclick:()=>{ location.href = epostLenke(s); }},"Åpne e-post med adressen utfylt"),
+    el("button",{class:"knapp and",style:"min-height:44px",
+      onclick:()=>{ lastNed(eksportFil(s)); varsle("Fila er lastet ned"); }},"Last ned fila"),
     el("p",{class:"liten",style:"margin:10px 0 0"},
       "Har du ikke dekning ennå, gjør du dette senere. Skjemaet ligger trygt på telefonen.")));
 
@@ -845,7 +851,8 @@ function sideSend(topp, mid, bunn, s){
 
   bunnknapper(bunn,
     el("button",{class:"knapp and",onclick:()=>gaTil("skjema",{id:s.id})},"Rediger"),
-    el("button",{class:"knapp gronn",onclick:()=>send(s)}, s.sendt ? "Send på nytt" : "Del skjemaet"));
+    el("button",{class:"knapp gronn",onclick:()=>send(s)},
+      deler ? (s.sendt ? "Del på nytt" : "Del skjemaet") : "Last ned skjemaet"));
 }
 
 function eksport(s){
@@ -859,30 +866,54 @@ function eksport(s){
   delete ut.sendt;
   return ut;
 }
-async function send(s){
-  const data = eksport(s);
-  const navn = "Internkontroll_" + filnavnsikker(s.hytteNavn) + "_" + s.dato + ".json";
-  const blob = new Blob([JSON.stringify(data, null, 1)], {type:"application/json"});
-  const fil = new File([blob], navn, {type:"application/json"});
-  const tekst = "Sikkerhetskontroll " + s.hytteNavn + " " + s.dato +
-    (s.utfortAv ? ", kontrollert av " + s.utfortAv : "") + ".";
-  let delt = false;
+// Filtypen er .txt med JSON inni. Delingsmenyen i iOS og Android godtar ikke
+// .json, og faller da tilbake til nedlasting. Ren tekst slipper gjennom.
+function eksportFil(s){
+  const tekst = JSON.stringify(eksport(s), null, 1);
+  return {
+    navn: "Internkontroll_" + filnavnsikker(s.hytteNavn) + "_" + s.dato + ".txt",
+    tekst: tekst,
+    blob: new Blob([tekst], {type:"text/plain"})
+  };
+}
+function kanDeleFil(){
   try{
-    if(navigator.canShare && navigator.canShare({files:[fil]})){
-      await navigator.share({files:[fil], title:"Sikkerhetskontroll " + s.hytteNavn, text:tekst});
-      delt = true;
+    const f = new File(["prøve"], "prove.txt", {type:"text/plain"});
+    return !!(navigator.canShare && navigator.canShare({files:[f]}));
+  }catch(e){ return false; }
+}
+function epostLenke(s){
+  return "mailto:" + MOTTAKER +
+    "?subject=" + encodeURIComponent("Sikkerhetskontroll " + s.hytteNavn + " " + s.dato) +
+    "&body=" + encodeURIComponent(
+      "Kontrollskjemaet ligger som vedlegg.\n\nHytte: " + s.hytteNavn +
+      "\nDato: " + s.dato + (s.utfortAv ? "\nKontrollert av: " + s.utfortAv : "") + "\n");
+}
+function lastNed(f){
+  const url = URL.createObjectURL(f.blob);
+  const a = el("a",{href:url,download:f.navn});
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+async function send(s){
+  const f = eksportFil(s);
+  if(kanDeleFil()){
+    try{
+      await navigator.share({
+        files:[new File([f.blob], f.navn, {type:"text/plain"})],
+        title:"Sikkerhetskontroll " + s.hytteNavn,
+        text:"Sikkerhetskontroll " + s.hytteNavn + " " + s.dato +
+             (s.utfortAv ? ", kontrollert av " + s.utfortAv : "") + "."
+      });
+      s.sendt = nowIso(); lagre(true); tegn();
+      return;
+    }catch(e){
+      if(e && e.name === "AbortError") return;      // brukeren avbrot selv
     }
-  }catch(e){
-    if(e && e.name === "AbortError") return;      // brukeren avbrot selv
   }
-  if(!delt){
-    const url = URL.createObjectURL(blob);
-    const a = el("a",{href:url,download:navn});
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 4000);
-    varsle("Fila er lastet ned. Legg den ved en e-post til " + MOTTAKER);
-  }
+  lastNed(f);
   s.sendt = nowIso(); lagre(true); tegn();
+  varsle("Fila er lastet ned. Åpne e-post og legg den ved.");
 }
 function varsle(t){
   const b = document.getElementById("lagret");
