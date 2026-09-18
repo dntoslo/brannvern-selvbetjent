@@ -190,7 +190,7 @@ ol.steg li:last-child{margin-bottom:0}
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-18-9";
+const APPVERSJON  = "2026-09-18-10";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -1057,10 +1057,16 @@ function sideOm(topp, mid, bunn){
       "iPhone: Del-knappen i Safari, så Legg til på Hjem-skjerm. "+
       "Android: menyen i Chrome, så Legg til på startskjerm.")));
   mid.append(el("div",{class:"kort"},
-    el("h3",{},"Hyttedata"),
-    el("p",{class:"liten",style:"margin:0"},
-      G.hytter.length + " hytter, datafil versjon " + (G.grunndataVersjon==null?"ukjent":G.grunndataVersjon) +
-      ", oppdatert " + (G.laget||"ukjent") + ".")));
+    el("h3",{},"Versjon og oppdatering"),
+    el("p",{class:"liten"},
+      "Appversjon " + APPVERSJON + ". Hyttedata: " + G.hytter.length + " hytter, " +
+      "datafil versjon " + (G.grunndataVersjon==null?"ukjent":G.grunndataVersjon) +
+      ", oppdatert " + (G.laget||"ukjent") + "."),
+    el("p",{class:"liten"},
+      "Appen henter ny utgave og ferske hyttedata av seg selv hver gang du åpner den "+
+      "med dekning. Du trenger aldri å installere den på nytt."),
+    el("button",{class:"knapp and",style:"margin-bottom:0",onclick:seEtterOppdatering},
+      "Se etter oppdatering nå")));
   const sendte = ALLE.filter(s=>s.sendt).length;
   if(sendte) mid.append(el("button",{class:"knapp and",onclick:()=>{
     if(confirm("Fjerne " + sendte + " sendte skjemaer fra telefonen?")){
@@ -1072,6 +1078,30 @@ function sideOm(topp, mid, bunn){
       ALLE = ALLE.filter(s=>s.sendt); lagre(true); gaTil("start");
     }}},"Slett påbegynte skjemaer"));
 }
+
+/* ============================================================
+   Oppdatering av appen
+   ============================================================ */
+async function seEtterOppdatering(){
+  if(!navigator.onLine){ varsle("Ingen dekning. Prøv igjen når du har nett."); return; }
+  varsle("Ser etter oppdatering …");
+  try{
+    if("serviceWorker" in navigator){
+      const reg = await navigator.serviceWorker.getRegistration();
+      if(reg) await reg.update();
+    }
+  }catch(e){}
+  setTimeout(()=>location.reload(), 900);
+}
+
+// Nar en ny utgave tar over, lastes siden en gang slik at brukeren faktisk far den
+let harLastetPaaNytt = false;
+if("serviceWorker" in navigator)
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if(harLastetPaaNytt) return;
+    harLastetPaaNytt = true;
+    if(SIDE.navn === "start") location.reload();      // avbryter ingen utfylling
+  });
 
 /* ============================================================
    Oppstart
