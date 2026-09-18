@@ -9,8 +9,12 @@
    Nettkallet gir opp etter tre sekunder og gar til cache. Det er viktig i fjellet,
    der telefonen kan ha en strek som ikke fungerer.
 
+   Merk: nettkallet gjores med cache "reload", som gar utenom nettleserens egen
+   mellomlagring. Uten det kan GitHub Pages sin Cache-Control gi den gamle fila
+   tilbake i inntil ti minutter, selv om vi ber om den fra nett.
+
    CACHE bumpes automatisk av lag-grunndata.py, eller manuelt ved endringer. */
-const CACHE = "internkontroll-v3";
+const CACHE = "internkontroll-v4";
 const FILER = ["./", "./index.html", "./grunndata.js", "./manifest.webmanifest",
                "./ikon-192.png", "./ikon-512.png"];
 const FERSKE = ["index.html", "grunndata.js"];
@@ -53,7 +57,8 @@ self.addEventListener("fetch", e => {
       const tidsavbrudd = setTimeout(() => {
         if(!avgjort){ avgjort = true; fraCache(e.request).then(ferdig); }
       }, TIDSGRENSE);
-      fetch(e.request).then(svar => {
+      // url som streng, ikke e.request: en navigasjonsforesporsel kan ikke kopieres
+      fetch(url.href, {cache:"reload", credentials:"same-origin"}).then(svar => {
         lagre(e.request, svar);
         clearTimeout(tidsavbrudd);
         if(!avgjort){ avgjort = true; ferdig(svar); }
