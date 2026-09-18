@@ -190,7 +190,7 @@ ol.steg li:last-child{margin-bottom:0}
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-18-10";
+const APPVERSJON  = "2026-09-18-11";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -1060,8 +1060,8 @@ function sideOm(topp, mid, bunn){
     el("h3",{},"Versjon og oppdatering"),
     el("p",{class:"liten"},
       "Appversjon " + APPVERSJON + ". Hyttedata: " + G.hytter.length + " hytter, " +
-      "datafil versjon " + (G.grunndataVersjon==null?"ukjent":G.grunndataVersjon) +
-      ", oppdatert " + (G.laget||"ukjent") + "."),
+      antallBygg() + " bygg, datafil versjon " + (G.grunndataVersjon==null?"ukjent":G.grunndataVersjon) +
+      ", oppdatert " + (G.laget||"ukjent") + ", kjennemerke " + grunndataStempel() + "."),
     el("p",{class:"liten"},
       "Appen henter ny utgave og ferske hyttedata av seg selv hver gang du åpner den "+
       "med dekning. Du trenger aldri å installere den på nytt."),
@@ -1082,6 +1082,18 @@ function sideOm(topp, mid, bunn){
 /* ============================================================
    Oppdatering av appen
    ============================================================ */
+function antallBygg(){ return G.hytter.reduce((n,h)=>n+h.bygg.length, 0); }
+
+// Kort kjennemerke av innholdet, sa det er lett a se om ny grunndata er lastet
+// selv nar versjonsnummeret star uendret
+function grunndataStempel(){
+  const t = JSON.stringify(G.hytter);
+  let h = 5381;
+  for(let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+  return h.toString(36).toUpperCase().slice(-5);
+}
+
+
 async function seEtterOppdatering(){
   if(!navigator.onLine){ varsle("Ingen dekning. Prøv igjen når du har nett."); return; }
   varsle("Ser etter oppdatering …");
