@@ -159,6 +159,8 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid #
   display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
 .klar.ja .prikk{background:var(--gronn)}
 .klar.nei .prikk{background:#E0B400;color:var(--blekk)}
+.klar .bytt{background:var(--hvit);border:1.5px solid var(--roed);border-radius:10px;
+  padding:12px 14px;margin:12px 0 0;font-size:15px}
 .klar ol{margin:12px 0 0;padding-left:22px}
 .klar ol li{margin:6px 0}
 ol.steg{margin:10px 0 0;padding-left:24px;font-size:16px}
@@ -190,7 +192,7 @@ ol.steg li:last-child{margin-bottom:0}
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-18-11";
+const APPVERSJON  = "2026-09-23-1";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -495,6 +497,24 @@ function erIos(){
   return /iPad|iPhone|iPod/.test(u) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
+// Pa iPhone er det bare Safari som kan legge appen pa hjemskjermen. Brave gir seg
+// ut for a vaere Safari i user agent, sa den kan vi ikke kjenne igjen. Derfor star
+// det en linje om andre nettlesere ogsa nar vi tror det er Safari.
+function iosNettleser(){
+  const u = navigator.userAgent || "";
+  if(/CriOS/.test(u)) return "Chrome";
+  if(/FxiOS/.test(u)) return "Firefox";
+  if(/EdgiOS/.test(u)) return "Edge";
+  if(/OPiOS|OPT\//.test(u)) return "Opera";
+  return null;
+}
+function kopierLenke(){
+  const adr = location.href.split("#")[0];
+  if(navigator.clipboard) navigator.clipboard.writeText(adr).then(
+    ()=>varsle("Adressen er kopiert"), ()=>varsle(adr));
+  else varsle(adr);
+}
+
 async function filerLagret(){
   try{
     if(!("caches" in window)) return false;
@@ -545,15 +565,31 @@ function klargjoringskort(){
       }},"Legg til på hjemskjermen"));
       return;
     }
-    kropp.append(erIos()
-      ? el("ol",{},
-          el("li",{},"Trykk delingsknappen nederst i Safari, firkanten med pil opp."),
-          el("li",{},"Bla ned til «Legg til på Hjem-skjerm»."),
-          el("li",{},"Trykk «Legg til» oppe til høyre."))
-      : el("ol",{},
-          el("li",{},"Trykk menyen med tre prikker oppe til høyre i Chrome."),
-          el("li",{},"Velg «Legg til på startskjerm» eller «Installer app»."),
-          el("li",{},"Bekreft.")));
+    if(erIos()){
+      const annen = iosNettleser();
+      if(annen)
+        kropp.append(el("div",{class:"bytt"},
+          el("b",{},"Du bruker " + annen + " på iPhone"),
+          el("div",{style:"margin-top:4px"},
+            "På iPhone er det bare Safari som kan legge appen på hjemskjermen. "+
+            "Kopier adressen, åpne den i Safari, og følg stegene der.")));
+      kropp.append(el("ol",{},
+        el("li",{},"Åpne adressen i Safari."),
+        el("li",{},"Trykk delingsknappen nederst, firkanten med pil opp."),
+        el("li",{},"Bla ned til «Legg til på Hjem-skjerm»."),
+        el("li",{},"Trykk «Legg til» oppe til høyre.")));
+      kropp.append(el("button",{class:"knapp and",style:"min-height:46px",
+        onclick:kopierLenke},"Kopier adressen til appen"));
+      if(!annen)
+        kropp.append(el("div",{class:"liten"},
+          "Bruker du Chrome, Brave eller Firefox på iPhone, virker ikke dette. "+
+          "Åpne adressen i Safari først."));
+    } else {
+      kropp.append(el("ol",{},
+        el("li",{},"Trykk menyen med tre prikker oppe til høyre i nettleseren."),
+        el("li",{},"Velg «Legg til på startskjerm» eller «Installer app»."),
+        el("li",{},"Bekreft.")));
+    }
     kropp.append(el("div",{class:"liten",style:"margin-top:10px"},
       "Deretter åpner du appen fra ikonet, ikke fra nettleseren."));
   });
