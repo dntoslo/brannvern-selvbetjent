@@ -192,7 +192,7 @@ ol.steg li:last-child{margin-bottom:0}
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-23-3";
+const APPVERSJON  = "2026-09-23-4";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -1071,6 +1071,11 @@ function eksport(s){
   ut.vedlikehold = s.vedlikehold.filter(v => (v.tittel||"").trim() || (v.notat||"").trim());
   ut.utstyr = s.utstyr.map(u => ({utstyrId:u.utstyrId, byggId:u.byggId, type:u.type, levetidAar:u.levetidAar,
     tidligereAar:u.tidligereAar, montertAar:u.montertAar, endret:u.montertAar !== u.tidligereAar}));
+  // punktene med sin egen tekst, sa oversiktssystemet kan vise avkryssingen
+  // uten a ha sin egen kopi av sporsmalene
+  ut.punkter = [];
+  bolkerFor(s).forEach(bo => synligePunkter(s, bo).forEach(p => ut.punkter.push({
+    id:p.id, bolk:bo.tittel, sp:p.sp, svar:s.svar[p.id] || null})));
   ut.grunndataStempel = s.grunndataStempel || grunndataStempel();
   ut.eksportert = nowIso();
   delete ut.sendt;
