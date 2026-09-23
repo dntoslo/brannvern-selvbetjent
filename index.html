@@ -192,7 +192,7 @@ ol.steg li:last-child{margin-bottom:0}
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-23-2";
+const APPVERSJON  = "2026-09-23-3";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -366,6 +366,7 @@ function nyttSkjema(hytteId, byggIder){
   const s = {
     skjemaType:"dnt-internkontroll", skjemaVersjon:SKJEMAVERSJON, appversjon:APPVERSJON,
     grunndataVersjon:G.grunndataVersjon, grunndataLaget:G.laget || null,
+    grunndataStempel:grunndataStempel(),
     id:nyId(), opprettet:nowIso(), sistEndret:nowIso(), sendt:null,
     hytteId:h.hytteId, hytteNavn:h.navn, omraade:h.omraade || null,
     dato:idag(), utfortAv:"",
@@ -395,7 +396,9 @@ function skjemaAv(id){ return ALLE.find(s => s.id === id); }
    Årstall tilsynet selv har rettet, står urørt. */
 function synkGrunndata(s){
   if(s.sendt) return null;
-  if(s.grunndataVersjon === G.grunndataVersjon && s.grunndataLaget === (G.laget||null)) return null;
+  // Kjennemerket regnes ut av innholdet. Versjonsnummer og dato i fila står ofte
+  // uendret når grunndata redigeres for hånd, og duger derfor ikke som sjekk.
+  if(s.grunndataStempel === grunndataStempel()) return null;
   const h = hytteAv(s.hytteId);
   if(!h) return null;
   const endringer = [];
@@ -436,6 +439,7 @@ function synkGrunndata(s){
   s.utstyr = beholdt;
   s.grunndataVersjon = G.grunndataVersjon;
   s.grunndataLaget = G.laget || null;
+  s.grunndataStempel = grunndataStempel();
   s.sistEndret = nowIso();
   lagre(true);
   return endringer.length ? endringer : null;
@@ -658,6 +662,7 @@ function sideStart(topp, mid, bunn){
   const sendt = ALLE.filter(s => s.sendt);
 
   mid.append(klargjoringskort());
+  mid.append(oppdateringskort());
   if(!ALLE.length){
     mid.append(el("div",{class:"kort"},
       el("h3",{},"Slik virker den"),
@@ -676,6 +681,19 @@ function sideStart(topp, mid, bunn){
   }
   mid.append(el("button",{class:"knapp and",style:"margin-top:22px",onclick:()=>gaTil("om")},"Om skjemaet og hjelp"));
   bunnknapper(bunn, el("button",{class:"knapp",onclick:()=>gaTil("hytte")},"Ny kontroll"));
+}
+function oppdateringskort(){
+  const kort = el("div",{class:"kort"});
+  kort.append(el("div",{class:"liten",style:"margin-bottom:10px"},
+    "Hyttedata oppdatert " + (G.laget||"ukjent") + ", kjennemerke " + grunndataStempel() +
+    ". Appversjon " + APPVERSJON + "."));
+  const knapp = el("button",{class:"knapp and",style:"margin:0",
+    onclick:()=>oppdaterAlt(knapp)},"Oppdater app og data");
+  kort.append(knapp);
+  kort.append(el("div",{class:"liten",style:"margin-top:8px"},
+    "Henter nyeste utgave av appen og ferske hyttedata. Påbegynte skjemaer beholdes, "+
+    "og oppdateres med de nye årstallene når du åpner dem."));
+  return kort;
 }
 function skjemarad(s){
   const st = Math.round(fremdrift(s)*100);
@@ -1053,6 +1071,7 @@ function eksport(s){
   ut.vedlikehold = s.vedlikehold.filter(v => (v.tittel||"").trim() || (v.notat||"").trim());
   ut.utstyr = s.utstyr.map(u => ({utstyrId:u.utstyrId, byggId:u.byggId, type:u.type, levetidAar:u.levetidAar,
     tidligereAar:u.tidligereAar, montertAar:u.montertAar, endret:u.montertAar !== u.tidligereAar}));
+  ut.grunndataStempel = s.grunndataStempel || grunndataStempel();
   ut.eksportert = nowIso();
   delete ut.sendt;
   return ut;
@@ -1197,6 +1216,23 @@ function grunndataStempel(){
 }
 
 
+async function oppdaterAlt(knapp){
+  if(!navigator.onLine){ varsle("Ingen dekning. Prøv igjen når du har nett."); return; }
+  const gammelt = grunndataStempel();
+  if(knapp){ knapp.disabled = true; knapp.textContent = "Henter …"; }
+  try{
+    if("serviceWorker" in navigator){
+      const reg = await navigator.serviceWorker.getRegistration();
+      if(reg) await reg.update();
+    }
+    // hentes med cache reload, slik at nettleserens eget lager gås utenom
+    await Promise.all(["./grunndata.js","./index.html"].map(u =>
+      fetch(u, {cache:"reload"}).catch(()=>null)));
+  }catch(e){}
+  try{ sessionStorage.setItem("ik-varsle-etter-oppdatering", gammelt); }catch(e){}
+  location.reload();
+}
+
 async function seEtterOppdatering(){
   if(!navigator.onLine){ varsle("Ingen dekning. Prøv igjen når du har nett."); return; }
   varsle("Ser etter oppdatering …");
@@ -1222,6 +1258,15 @@ if("serviceWorker" in navigator)
    Oppstart
    ============================================================ */
 les();
+// etter en trykket oppdatering: si fra om dataene faktisk ble nye
+try{
+  const foer = sessionStorage.getItem("ik-varsle-etter-oppdatering");
+  if(foer != null){
+    sessionStorage.removeItem("ik-varsle-etter-oppdatering");
+    setTimeout(()=>varsle(foer === grunndataStempel()
+      ? "Alt var allerede oppdatert" : "Nye hyttedata hentet"), 600);
+  }
+}catch(e){}
 // sendte skjemaer eldre enn et halvt ar ryddes bort, sa lista ikke vokser i det uendelige
 (function ryddGamle(){
   const grense = new Date(Date.now() - 180*24*3600*1000).toISOString().slice(0,19);
