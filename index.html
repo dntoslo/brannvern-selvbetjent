@@ -192,7 +192,7 @@ ol.steg li:last-child{margin-bottom:0}
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-23-1";
+const APPVERSJON  = "2026-09-23-2";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
 
@@ -365,7 +365,7 @@ function nyttSkjema(hytteId, byggIder){
   })));
   const s = {
     skjemaType:"dnt-internkontroll", skjemaVersjon:SKJEMAVERSJON, appversjon:APPVERSJON,
-    grunndataVersjon:G.grunndataVersjon,
+    grunndataVersjon:G.grunndataVersjon, grunndataLaget:G.laget || null,
     id:nyId(), opprettet:nowIso(), sistEndret:nowIso(), sendt:null,
     hytteId:h.hytteId, hytteNavn:h.navn, omraade:h.omraade || null,
     dato:idag(), utfortAv:"",
@@ -388,6 +388,58 @@ function varslertypeFra(bygg){
   return m.size === 1 ? [...m][0] : null;
 }
 function skjemaAv(id){ return ALLE.find(s => s.id === id); }
+
+/* Et påbegynt skjema tar med seg en kopi av hyttedataene fra den dagen det ble
+   startet: byggnavn og årstall på utstyret. Ligger det til neste sesong, er den
+   kopien utdatert. Derfor synkroniseres skjemaet mot ferske data når det åpnes.
+   Årstall tilsynet selv har rettet, står urørt. */
+function synkGrunndata(s){
+  if(s.sendt) return null;
+  if(s.grunndataVersjon === G.grunndataVersjon && s.grunndataLaget === (G.laget||null)) return null;
+  const h = hytteAv(s.hytteId);
+  if(!h) return null;
+  const endringer = [];
+
+  s.hytteNavn = h.navn;
+  s.omraade = h.omraade || null;
+  s.bygg = s.bygg.filter(b => {
+    const rad = h.bygg.find(x => x.byggId === b.byggId);
+    if(!rad){ endringer.push(b.navn + " finnes ikke lenger"); return false; }
+    if(rad.navn !== b.navn){ endringer.push(b.navn + " heter nå " + rad.navn); b.navn = rad.navn; }
+    return true;
+  });
+
+  const beholdt = [];
+  s.bygg.forEach(b => {
+    const rad = h.bygg.find(x => x.byggId === b.byggId);
+    (rad.utstyr||[]).forEach(u => {
+      const gammel = s.utstyr.find(x => x.utstyrId === u.utstyrId);
+      if(!gammel){
+        beholdt.push({utstyrId:u.utstyrId, byggId:b.byggId, byggNavn:b.navn, type:u.type,
+          levetidAar:u.levetidAar == null ? null : u.levetidAar,
+          tidligereAar:u.montertAar == null ? null : u.montertAar,
+          montertAar:u.montertAar == null ? null : u.montertAar});
+        endringer.push("nytt utstyr i " + b.navn);
+        return;
+      }
+      const rortAvTilsynet = gammel.montertAar !== gammel.tidligereAar;
+      const nyttFasit = u.montertAar == null ? null : u.montertAar;
+      if(gammel.tidligereAar !== nyttFasit){
+        if(!rortAvTilsynet){ gammel.montertAar = nyttFasit; endringer.push("nytt årstall i " + b.navn); }
+        gammel.tidligereAar = nyttFasit;   // nytt sammenlikningsgrunnlag
+      }
+      gammel.byggNavn = b.navn;
+      gammel.levetidAar = u.levetidAar == null ? null : u.levetidAar;
+      beholdt.push(gammel);
+    });
+  });
+  s.utstyr = beholdt;
+  s.grunndataVersjon = G.grunndataVersjon;
+  s.grunndataLaget = G.laget || null;
+  s.sistEndret = nowIso();
+  lagre(true);
+  return endringer.length ? endringer : null;
+}
 
 // hvilke bolker som gjelder for de valgte byggene
 function bolkerFor(s){
@@ -575,8 +627,11 @@ function klargjoringskort(){
             "Kopier adressen, åpne den i Safari, og følg stegene der.")));
       kropp.append(el("ol",{},
         el("li",{},"Åpne adressen i Safari."),
-        el("li",{},"Trykk delingsknappen nederst, firkanten med pil opp."),
-        el("li",{},"Bla ned til «Legg til på Hjem-skjerm»."),
+        el("li",{},"Trykk de tre prikkene nederst til høyre. På eldre iPhone er det "+
+                   "delingsknappen i stedet, firkanten med pil opp."),
+        el("li",{},"Velg «Del» i menyen som kommer opp. Er du allerede i delingsmenyen, "+
+                   "hopper du over dette."),
+        el("li",{},"Bla nedover til «Legg til på Hjem-skjerm»."),
         el("li",{},"Trykk «Legg til» oppe til høyre.")));
       kropp.append(el("button",{class:"knapp and",style:"min-height:46px",
         onclick:kopierLenke},"Kopier adressen til appen"));
@@ -679,8 +734,17 @@ function sideVelgBygg(topp, mid, bunn){
 
 /* --- Selve skjemaet --- */
 function sideSkjema(topp, mid, bunn, s){
+  const synk = synkGrunndata(s);
   hode(topp, s.hytteNavn, s.omfang==="anlegg" ? "Hele anlegget" : s.bygg.map(b=>b.navn).join(", "),
     ()=>gaTil("start"), fremdrift(s));
+
+  if(synk)
+    mid.append(el("div",{class:"kort klar nei"},
+      el("div",{class:"topp"}, el("div",{class:"prikk"},"i"),
+        el("div",{}, el("b",{},"Hyttedataene er oppdatert siden du startet"))),
+      el("div",{class:"liten",style:"margin-top:8px"},
+        "Skjemaet er oppdatert med det nyeste: " + synk.slice(0,4).join(", ") +
+        (synk.length > 4 ? " og mer" : "") + ". Årstall du selv har rettet, står urørt.")));
 
   // hvem og nar
   const topkort = el("div",{class:"kort"});
@@ -1101,6 +1165,9 @@ function sideOm(topp, mid, bunn){
     el("p",{class:"liten"},
       "Appen henter ny utgave og ferske hyttedata av seg selv hver gang du åpner den "+
       "med dekning. Du trenger aldri å installere den på nytt."),
+    el("p",{class:"liten"},
+      "Et påbegynt skjema oppdateres mot ferske hyttedata når du åpner det igjen. "+
+      "Sendte skjemaer ryddes bort automatisk etter et halvt år."),
     el("button",{class:"knapp and",style:"margin-bottom:0",onclick:seEtterOppdatering},
       "Se etter oppdatering nå")));
   const sendte = ALLE.filter(s=>s.sendt).length;
@@ -1155,6 +1222,13 @@ if("serviceWorker" in navigator)
    Oppstart
    ============================================================ */
 les();
+// sendte skjemaer eldre enn et halvt ar ryddes bort, sa lista ikke vokser i det uendelige
+(function ryddGamle(){
+  const grense = new Date(Date.now() - 180*24*3600*1000).toISOString().slice(0,19);
+  const foer = ALLE.length;
+  ALLE = ALLE.filter(s => !s.sendt || s.sendt > grense);
+  if(ALLE.length !== foer) lagre(true);
+})();
 const [h0, id0] = location.hash.replace(/^#/,"").split("/");
 SIDE = {navn:h0 || "start", id:id0 || null};
 if(SIDE.navn === "bygg" || SIDE.navn === "hytte") SIDE = {navn:"start"};
