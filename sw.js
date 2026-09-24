@@ -14,7 +14,7 @@
    tilbake i inntil ti minutter, selv om vi ber om den fra nett.
 
    CACHE bumpes automatisk av lag-grunndata.py, eller manuelt ved endringer. */
-const CACHE = "internkontroll-v4";
+const CACHE = "internkontroll-v5";
 const FILER = ["./", "./index.html", "./grunndata.js", "./manifest.webmanifest",
                "./ikon-192.png", "./ikon-512.png"];
 const FERSKE = ["index.html", "grunndata.js"];

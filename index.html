@@ -192,9 +192,17 @@ ol.steg li:last-child{margin-bottom:0}
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-23-4";
+const APPVERSJON  = "2026-09-24-1";
 const SKJEMAVERSJON = 1;
-const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // e-postadressen skjemaene sendes til
+const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // reserveveien, e-post
+
+// Mottaket skjemaene sendes til. Nokkelen er den offentlige, og tabellen godtar
+// bare innsending, ingen lesing, sa den kan ligge apent her.
+const MOTTAK = {
+  url:    "https://cftlrdzsoderuyoplpsv.supabase.co",
+  nokkel: "sb_publishable_kd1ruOYxyqT44-5oHPwRCw__k8Ik54p",
+  tabell: "brannvern_kontrollskjema"
+};
 
 /* ============================================================
    Skjemadefinisjon, speiler papirskjemaet rev. 02
@@ -671,6 +679,13 @@ function sideStart(topp, mid, bunn){
         el("li",{},"Fyll ut underveis. Alt lagres på telefonen, også uten dekning."),
         el("li",{},"Send inn når du er tilbake i dekning."))));
   }
+  const iKo = kladd.filter(x=>x.iKo).length;
+  if(iKo) mid.append(el("div",{class:"kort klar nei"},
+    el("div",{class:"topp"}, el("div",{class:"prikk"},"↑"),
+      el("div",{}, el("b",{}, iKo === 1 ? "Ett skjema venter på å bli sendt"
+                                        : iKo + " skjemaer venter på å bli sendt"))),
+    el("div",{class:"liten",style:"margin-top:8px"},
+      "De sendes av seg selv så snart telefonen har dekning. Du trenger ikke gjøre noe.")));
   if(kladd.length){
     mid.append(el("h2",{style:"margin:22px 0 0"}, kladd.length === 1 ? "Påbegynt kontroll" : "Påbegynte kontroller"));
     mid.append(el("div",{class:"kort tett liste"}, kladd.map(s => skjemarad(s))));
@@ -701,7 +716,8 @@ function skjemarad(s){
     el("div",{class:"t"},
       el("b",{},s.hytteNavn),
       el("span",{}, s.dato + " · " + (s.omfang === "anlegg" ? "hele anlegget" : s.bygg.map(b=>b.navn).join(", ")))),
-    el("span",{class:"status"+(s.sendt?" sendt":"")}, s.sendt ? "Sendt" : st+" %"));
+    el("span",{class:"status"+(s.sendt?" sendt":"")},
+      s.sendt ? "Sendt" : (s.iKo ? "I kø" : st+" %")));
 }
 
 /* --- Velg hytte --- */
@@ -1037,31 +1053,36 @@ function sideSend(topp, mid, bunn, s){
     mid.append(uk);
   }
 
-  const deler = kanDeleFil();
-  const adresse = el("b",{}, MOTTAKER);
-  mid.append(el("div",{class:"kort",style:"background:var(--blaa);border-color:#A9C6D9"},
-    el("h3",{},"Slik sender du"),
-    deler
-      ? el("ol",{class:"steg"},
-          el("li",{},"Trykk Send inn nederst på siden."),
-          el("li",{},"Velg e-postappen din, for eksempel Gmail, Outlook eller Mail."),
-          el("li",{},"Fyll inn ", adresse, " i Til-feltet, og send e-posten når du har dekning."))
-      : el("ol",{class:"steg"},
-          el("li",{},"Trykk Last ned kontrollfil."),
-          el("li",{},"Åpne e-postappen din og lag en ny melding."),
-          el("li",{},"Legg ved fila fra nedlastingene, fyll inn ", adresse,
-                     " i Til-feltet, og send e-posten når du har dekning.")),
-    el("p",{class:"liten",style:"margin:12px 0 0"}, deler
-      ? "Skjemaet blir med som vedlegg, og et sammendrag legger seg i selve meldingen. "+
-        "Har du ikke dekning ennå, gjør du dette senere. Skjemaet ligger trygt på telefonen."
-      : "Har du ikke dekning ennå, gjør du dette senere. Skjemaet ligger trygt på telefonen.")));
+  const kort = el("div",{class:"kort",style:"background:var(--blaa);border-color:#A9C6D9"},
+    el("h3",{},"Slik sender du"));
+  if(s.sendt){
+    kort.append(el("p",{style:"margin:0"},
+      "Skjemaet er sendt inn. Du kan sende det på nytt hvis du har rettet noe."));
+  } else if(s.iKo){
+    kort.append(el("p",{style:"margin:0 0 6px"},
+      "Skjemaet står i kø og sendes av seg selv når du får dekning."),
+      el("p",{class:"liten",style:"margin:0"},
+        s.leveringsfeil ? "Siste forsøk: " + s.leveringsfeil : "Du trenger ikke gjøre noe mer."));
+  } else {
+    kort.append(el("ol",{class:"steg"},
+      el("li",{},"Trykk Send inn nederst på siden."),
+      el("li",{},"Har du dekning, går skjemaet rett til bygningsansvarlig."),
+      el("li",{},"Har du ikke dekning, legger det seg i kø og sendes av seg selv senere.")));
+  }
+  kort.append(el("p",{class:"liten",style:"margin:12px 0 0"},
+    "Går det ikke gjennom, bruk Send på e-post i stedet. Da sendes fila som vedlegg til "
+    + MOTTAKER + "."));
+  mid.append(kort);
+
+  mid.append(el("button",{class:"knapp and",onclick:()=>sendEpost(s)},"Send på e-post i stedet"));
 
   mid.append(el("button",{class:"knapp and",
     onclick:()=>{ lastNed(eksportFil(s)); varsle("Kontrollfila er lastet ned"); }},"Last ned kontrollfil"));
 
   bunnknapper(bunn,
     el("button",{class:"knapp and",onclick:()=>gaTil("skjema",{id:s.id})},"Rediger"),
-    el("button",{class:"knapp gronn",onclick:()=>send(s)}, s.sendt ? "Send på nytt" : "Send inn"));
+    el("button",{class:"knapp gronn",onclick:()=>send(s)},
+      s.sendt ? "Send på nytt" : (s.iKo ? "Prøv å sende nå" : "Send inn")));
 }
 
 function eksport(s){
@@ -1138,7 +1159,63 @@ function lastNed(f){
   document.body.append(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
+// Sender til mottaket. Kaster hvis det ikke gikk, sa den som kaller kan legge i ko.
+async function sendTilMottak(s){
+  const f = eksportFil(s);
+  const rad = {
+    hytte_id: s.hytteId, hytte_navn: s.hytteNavn, dato: s.dato,
+    utfort_av: (s.utfortAv||"").trim() || null, filnavn: f.navn,
+    skjema: JSON.parse(f.tekst)
+  };
+  const r = await fetch(MOTTAK.url + "/rest/v1/" + MOTTAK.tabell, {
+    method:"POST",
+    headers:{"apikey":MOTTAK.nokkel, "Authorization":"Bearer "+MOTTAK.nokkel,
+             "Content-Type":"application/json", "Prefer":"return=minimal"},
+    body: JSON.stringify(rad)
+  });
+  if(!r.ok) throw new Error((await r.text()) || ("Serveren svarte " + r.status));
+}
+
+// Skjemaer som venter pa dekning. Kalles ved oppstart og nar nettet kommer tilbake.
+let tommerKo = false;
+async function tomKo(stille){
+  if(tommerKo || !navigator.onLine) return;
+  const venter = ALLE.filter(s => s.iKo && !s.sendt);
+  if(!venter.length) return;
+  tommerKo = true;
+  let n = 0;
+  for(const s of venter){
+    try{
+      await sendTilMottak(s);
+      s.sendt = nowIso(); s.iKo = false; s.leveringsfeil = null; n++;
+    }catch(e){ s.leveringsfeil = e.message; }
+  }
+  tommerKo = false;
+  lagre(true);
+  if(n && !stille) varsle(n === 1 ? "Skjemaet er sendt inn" : n + " skjemaer er sendt inn");
+  if(n) tegn();
+}
+
 async function send(s){
+  if(!navigator.onLine){
+    s.iKo = true; s.sistEndret = nowIso(); lagre(true); tegn();
+    varsle("Lagt i kø. Skjemaet sendes av seg selv når du får dekning.");
+    return;
+  }
+  varsle("Sender …");
+  try{
+    await sendTilMottak(s);
+    s.sendt = nowIso(); s.iKo = false; s.leveringsfeil = null;
+    lagre(true); tegn();
+    varsle("Skjemaet er sendt inn");
+  }catch(e){
+    s.iKo = true; s.leveringsfeil = e.message; lagre(true); tegn();
+    varsle("Fikk ikke sendt. Skjemaet står i kø, eller send på e-post.");
+  }
+}
+
+// Reserveveien: del fila slik den alltid har vært delt
+async function sendEpost(s){
   const f = eksportFil(s);
   if(kanDeleFil()){
     try{
@@ -1147,16 +1224,17 @@ async function send(s){
         title:"Sikkerhetskontroll " + s.hytteNavn + " " + s.dato,
         text:epostTekst(s)
       });
-      s.sendt = nowIso(); lagre(true); tegn();
+      s.sendt = nowIso(); s.iKo = false; lagre(true); tegn();
       return;
     }catch(e){
-      if(e && e.name === "AbortError") return;      // brukeren avbrot selv
+      if(e && e.name === "AbortError") return;
     }
   }
   lastNed(f);
-  s.sendt = nowIso(); lagre(true); tegn();
+  s.sendt = nowIso(); s.iKo = false; lagre(true); tegn();
   varsle("Fila er lastet ned. Åpne e-post og legg den ved.");
 }
+
 function varsle(t){
   const b = document.getElementById("lagret");
   b.textContent = t; b.classList.add("vis");
@@ -1172,8 +1250,8 @@ function sideOm(topp, mid, bunn){
     el("ul",{style:"padding-left:18px;margin:0"},
       el("li",{},"Alt du fyller ut lagres på telefonen med én gang, også uten dekning."),
       el("li",{},"Du kan lukke appen og fortsette senere."),
-      el("li",{},"Når du er i dekning, sender du skjemaet som vedlegg til " + MOTTAKER + "."),
-      el("li",{},"Fila går rett inn i brannvernoversikten hos bygningsansvarlig."))));
+      el("li",{},"Trykk Send inn når du er ferdig. Uten dekning legger skjemaet seg i kø og sendes av seg selv senere."),
+      el("li",{},"Går innsendingen ikke gjennom, kan du alltid sende fila på e-post til " + MOTTAKER + "."))));
   mid.append(el("div",{class:"kort"},
     el("h3",{},"Legg appen på hjemskjermen"),
     el("p",{style:"font-size:15px"},"Gjør dette hjemme, mens du har nett. Da virker skjemaet på fjellet."),
@@ -1285,6 +1363,8 @@ if(SIDE.navn === "bygg" || SIDE.navn === "hytte") SIDE = {navn:"start"};
 tegn();
 window.addEventListener("beforeunload", ()=>{ clearTimeout(lagreTimer); lagre(true); });
 document.addEventListener("visibilitychange", ()=>{ if(document.hidden) lagre(true); });
+window.addEventListener("online", ()=>tomKo());
+setTimeout(()=>tomKo(true), 2500);
 if("serviceWorker" in navigator)
   window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
