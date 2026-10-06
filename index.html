@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sikkerhetskontroll, selvbetjente hytter</title>
+<title>DNT-kontroll, sikkerhetskontroll for selvbetjente hytter</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#FFF7E9">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Sikkerhetskontroll">
+<meta name="apple-mobile-web-app-title" content="DNT-kontroll">
 <link rel="apple-touch-icon" href="ikon-192.png">
 <style>
 :root{
@@ -192,7 +192,7 @@ ol.steg li:last-child{margin-bottom:0}
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-09-24-1";
+const APPVERSJON  = "2026-10-06-1";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // reserveveien, e-post
 
@@ -665,7 +665,7 @@ function klargjoringskort(){
 
 /* --- Startside --- */
 function sideStart(topp, mid, bunn){
-  hode(topp, "Sikkerhetskontroll", "Selvbetjente hytter, DNT Oslo og Omegn");
+  hode(topp, "DNT-kontroll", "Årlig sikkerhetskontroll, selvbetjente hytter");
   const kladd = ALLE.filter(s => !s.sendt);
   const sendt = ALLE.filter(s => s.sendt);
 

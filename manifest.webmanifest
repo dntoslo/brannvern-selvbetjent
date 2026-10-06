@@ -1,6 +1,6 @@
 {
-  "name": "Sikkerhetskontroll, selvbetjente hytter",
-  "short_name": "Sikkerhetskontroll",
+  "name": "DNT-kontroll, sikkerhetskontroll for selvbetjente hytter",
+  "short_name": "DNT-kontroll",
   "description": "Årlig sikkerhetskontroll på DNT Oslo og Omegns selvbetjente hytter. Virker uten dekning.",
   "lang": "nb",
   "start_url": "./",
