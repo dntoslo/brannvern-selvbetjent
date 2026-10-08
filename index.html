@@ -88,6 +88,13 @@ header .tit span{display:block;font-size:13px;color:var(--damp)}
 .valg.smal button{font-size:15px;min-height:56px;padding:6px 4px}
 .valg button.paa[data-v="ja"]{background:var(--gronn);border-color:var(--gronn);color:#fff;font-weight:600}
 .valg button.paa[data-v="nei"]{background:var(--roed);border-color:var(--roed);color:#fff;font-weight:600}
+.valg.noyt button.paa[data-v="nei"]{background:var(--beige2);border-color:var(--damp);color:var(--blekk)}
+.skiftet{margin-top:6px;border:1.5px solid var(--kant);background:var(--hvit);border-radius:8px;
+  font:inherit;font-size:13.5px;padding:6px 10px;cursor:pointer;color:var(--blekk)}
+.skiftet.paa{background:var(--gronn);border-color:var(--gronn);color:#fff;font-weight:600}
+.nettleser{background:var(--roed-lys);border:1.5px solid var(--roed);border-radius:10px;
+  padding:10px 12px;margin:12px 0 0;font-size:14.5px;line-height:1.4}
+.nettleser b{display:block;margin-bottom:2px}
 .valg button.paa[data-v="ia"]{background:var(--beige2);border-color:var(--damp);font-weight:600}
 
 label{display:block;font-size:15px;font-weight:600;margin:14px 0 6px}
@@ -192,7 +199,7 @@ ol.steg li:last-child{margin-bottom:0}
 /* ============================================================
    Innstillinger som kan endres
    ============================================================ */
-const APPVERSJON  = "2026-10-06-1";
+const APPVERSJON  = "2026-10-06-2";
 const SKJEMAVERSJON = 1;
 const MOTTAKER    = "jon-leo.svendsen@dnt.no";   // reserveveien, e-post
 
@@ -619,10 +626,10 @@ function klargjoringskort(){
           onclick:()=>location.reload()},"Last inn på nytt"));
       return;
     }
-    tit.textContent = "Legg appen på hjemskjermen";
+    tit.textContent = "Du er på nettsiden, ikke i appen";
     kropp.append(el("div",{class:"liten"},
-      "Filene er lagret, men gjør dette før du drar. Åpner du appen fra hjemskjermen, "+
-      "beholder telefonen skjemaene dine, og appen starter selv om du er uten dekning."));
+      "Har du allerede lagt DNT-kontroll på hjemskjermen, lukk nettleseren og åpne appen "+
+      "fra ikonet. Bare der virker den uten dekning. Har du ikke lagt den inn ennå, gjør det slik:"));
     if(INSTALLER){
       kropp.append(el("button",{class:"knapp",style:"min-height:48px",onclick:async()=>{
         INSTALLER.prompt(); await INSTALLER.userChoice; INSTALLER = null; tegn();
@@ -664,6 +671,17 @@ function klargjoringskort(){
 }
 
 /* --- Startside --- */
+// Vises nar sida er apnet i nettleseren og ikke fra ikonet pa hjemskjermen.
+// Pa iPhone har nettleseren og appen hver sin lagring, sa et skjema startet her
+// finnes ikke i appen.
+function nettleservarsel(){
+  if(fraHjemskjerm()) return null;
+  return el("div",{class:"nettleser"},
+    el("b",{},"Du er i nettleseren, ikke i appen"),
+    "Det du fyller ut her, finnes ikke i DNT-kontroll på hjemskjermen, og det virker ikke uten dekning. "+
+    "Lukk nettleseren og åpne appen fra ikonet.");
+}
+
 function sideStart(topp, mid, bunn){
   hode(topp, "DNT-kontroll", "Årlig sikkerhetskontroll, selvbetjente hytter");
   const kladd = ALLE.filter(s => !s.sendt);
@@ -723,6 +741,7 @@ function skjemarad(s){
 /* --- Velg hytte --- */
 function sideVelgHytte(topp, mid, bunn){
   hode(topp, "Hvilken hytte?", G.hytter.length + " hytter", ()=>gaTil("start"));
+  const nv = nettleservarsel(); if(nv) mid.append(nv);
   const liste = el("div",{class:"kort tett liste"});
   const sok = el("input",{type:"text",placeholder:"Søk etter hytte", autocomplete:"off",
     oninput:e=>tegnListe(e.target.value)});
@@ -771,6 +790,7 @@ function sideSkjema(topp, mid, bunn, s){
   const synk = synkGrunndata(s);
   hode(topp, s.hytteNavn, s.omfang==="anlegg" ? "Hele anlegget" : s.bygg.map(b=>b.navn).join(", "),
     ()=>gaTil("start"), fremdrift(s));
+  const nv = nettleservarsel(); if(nv) mid.append(nv);
 
   if(synk)
     mid.append(el("div",{class:"kort klar nei"},
@@ -870,8 +890,13 @@ function fyllBolk(s, bo, boks, num, undertekst){
     rad.append(el("div",{class:"sp"}, p.sp, p.info ? el("div",{class:"liten"},p.info) : null));
     const tekstboks = el("div",{});
     const valg = el("div",{class:"valg"});
+    // Nei pa et kontrollpunkt er et avvik, sa knappen heter det. Unntaket er sporsmal
+    // der nei er et vanlig svar, som om hytta har solceller.
+    const neiTekst = p.ingenAvvik ? "Nei" : "Avvik";
     const alternativ = p.bekreft ? [["ja","Kontrollert"]]
-      : (p.utenIA || bo.utenIA ? [["ja","Ja"],["nei","Nei"]] : [["ja","Ja"],["nei","Nei"],["ia","Ikke aktuelt"]]);
+      : (p.utenIA || bo.utenIA ? [["ja","Ja"],["nei",neiTekst]]
+                               : [["ja","Ja"],["nei",neiTekst],["ia","Ikke aktuelt"]]);
+    if(p.ingenAvvik) valg.classList.add("noyt");
     alternativ.forEach(([v,t]) => valg.append(el("button",{type:"button","data-v":v,
       class:(s.svar[p.id]===v ? "paa" : ""), onclick:()=>{
         s.svar[p.id] = (s.svar[p.id]===v ? null : v);
@@ -913,7 +938,9 @@ function tegnUtstyr(s, type){
   const boks = el("div",{class:"utstyr"},
     el("h3",{}, UTSTYRSNAVN[type] + ", år sist skiftet"),
     el("div",{class:"liten",style:"margin:-4px 0 8px"},
-      "Står året allerede riktig, lar du det stå. Har du skiftet i år, skriver du " + IAR + "."));
+      type === "brannvarsler"
+        ? "Har du skiftet varslere nå, trykk Skiftet nå. Står året feil, retter du det i feltet."
+        : "Har du skiftet " + UTSTYRSNAVN[type].toLowerCase() + " nå, trykk Skiftet nå. Står året feil, retter du det i feltet."));
   if(!rader.length){
     boks.append(el("div",{class:"liten"},"Ingen " + UTSTYRSNAVN[type].toLowerCase() + " er registrert på disse byggene."));
     return boks;
@@ -931,10 +958,31 @@ function tegnUtstyr(s, type){
         u.montertAar = isNaN(v) ? null : v;
         settMerke(merke, u, sentral); endret(s);
       }});
+    felt.addEventListener("input", ()=>{
+      const kontrollAar = parseInt(String(s.dato||"").slice(0,4),10) || IAR;
+      if(u.skiftet && u.montertAar !== kontrollAar){
+        u.skiftet = false;
+        const k = felt.parentNode && felt.parentNode.querySelector(".skiftet");
+        if(k){ k.className = "skiftet"; k.textContent = sentral ? "Kontrollert nå" : "Skiftet nå"; }
+      }
+    });
     settMerke(merke, u, sentral);
+    // Ett trykk nar utstyret er byttet ved denne kontrollen. Aret settes ut fra kontrolldatoen.
+    const kontrollAar = parseInt(String(s.dato||"").slice(0,4),10) || IAR;
+    const skiftKnapp = el("button",{type:"button",class:"skiftet"+(u.skiftet?" paa":""),onclick:()=>{
+      u.skiftet = !u.skiftet;
+      u.montertAar = u.skiftet ? kontrollAar : u.tidligereAar;
+      felt.value = u.montertAar == null ? "" : u.montertAar;
+      skiftKnapp.className = "skiftet" + (u.skiftet ? " paa" : "");
+      skiftKnapp.textContent = u.skiftet ? (sentral ? "Kontrollert nå ✓" : "Skiftet nå ✓")
+                                         : (sentral ? "Kontrollert nå" : "Skiftet nå");
+      settMerke(merke, u, sentral); endret(s);
+    }}, u.skiftet ? (sentral ? "Kontrollert nå ✓" : "Skiftet nå ✓")
+                  : (sentral ? "Kontrollert nå" : "Skiftet nå"));
     boks.append(el("div",{class:"urad"},
       el("div",{class:"un"}, (s.bygg.length > 1 ? b.navn : (sentral ? "Brannsentral" : UTSTYRSNAVN[type])),
-        el("span",{}, sentral ? "År for forrige kontroll av sentralen" : merke)),
+        el("span",{}, sentral ? "År for forrige kontroll av sentralen" : merke),
+        skiftKnapp),
       felt));
   });
   return boks;
@@ -1091,7 +1139,8 @@ function eksport(s){
   ut.notater = alleNotater(s);
   ut.vedlikehold = s.vedlikehold.filter(v => (v.tittel||"").trim() || (v.notat||"").trim());
   ut.utstyr = s.utstyr.map(u => ({utstyrId:u.utstyrId, byggId:u.byggId, type:u.type, levetidAar:u.levetidAar,
-    tidligereAar:u.tidligereAar, montertAar:u.montertAar, endret:u.montertAar !== u.tidligereAar}));
+    tidligereAar:u.tidligereAar, montertAar:u.montertAar, endret:u.montertAar !== u.tidligereAar,
+    skiftet:!!u.skiftet}));
   // punktene med sin egen tekst, sa oversiktssystemet kan vise avkryssingen
   // uten a ha sin egen kopi av sporsmalene
   ut.punkter = [];
